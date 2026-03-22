@@ -1,0 +1,2769 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Serpientes Funcion v3</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow-x:hidden;}
+body{background:#080816;font-family:'Courier New',monospace;color:#e0e0ff;display:flex;flex-direction:column;align-items:center;touch-action:none;}
+#game-wrap{display:flex;flex-direction:column;align-items:center;width:100%;padding:4px;}
+
+/* HUD */
+#hud{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center;padding:4px 6px;background:#0e0e24;border:1px solid #2a2a50;border-radius:8px;margin-bottom:4px;width:100%;max-width:680px;}
+.hud-block{display:flex;flex-direction:column;align-items:center;min-width:44px;}
+.hud-label{font-size:8px;color:#6677aa;letter-spacing:1px;text-transform:uppercase;}
+.hud-val{font-size:12px;font-weight:bold;color:#c8d8ff;}
+.hud-val.hp{color:#4eff88;}.hud-val.dmg{color:#ff6644;}.hud-val.lvl{color:#ffcc44;}.hud-val.phase{color:#cc88ff;font-size:10px;}
+.bar-wrap{width:40px;height:5px;background:#1a1a30;border-radius:3px;margin-top:2px;}
+.bar-inner{height:100%;border-radius:3px;transition:width 0.3s;}.bar-hp{background:#4eff88;}
+
+/* Enemy HUD */
+#enemy-hud{background:#140a1e;border:1px solid #3a2a50;border-radius:8px;padding:3px 10px;text-align:center;margin-bottom:3px;min-height:36px;width:100%;max-width:680px;}
+#enemy-name{font-size:11px;color:#ffaa44;font-weight:bold;letter-spacing:1px;}
+#enemy-fx{font-size:10px;color:#cc88ff;font-style:italic;margin-top:1px;}
+#enemy-hp-row{display:flex;align-items:center;gap:8px;justify-content:center;margin-top:2px;}
+#enemy-hp-bar-wrap{width:140px;height:6px;background:#1a0e1e;border-radius:4px;}
+#enemy-hp-bar{height:100%;background:#ff4466;border-radius:4px;transition:width 0.3s;}
+#enemy-hp-txt{font-size:9px;color:#ff8899;}
+
+/* Canvas */
+canvas{border:1px solid #2a2a44;border-radius:4px;cursor:none;display:block;}
+#canvas-wrap{position:relative;width:100%;max-width:680px;}
+
+/* Canvas scales responsively — internal resolution stays fixed */
+#c, #deathCanvas{
+  width:100% !important;
+  height:auto !important;
+  touch-action:none;
+}
+
+/* Overlay */
+#overlay{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(4,4,16,0.94);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;border-radius:4px;z-index:10;padding:10px 12px;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+#overlay h2{font-size:16px;color:#ffcc44;margin-bottom:4px;text-align:center;}
+#overlay .sub{font-size:11px;color:#aabbdd;text-align:center;max-width:420px;line-height:1.5;margin-bottom:5px;}
+.math-card{background:#0c0c22;border:1px solid #334466;border-radius:8px;padding:8px 12px;margin:4px 0;max-width:440px;width:100%;text-align:left;}
+.math-card h3{font-size:11px;color:#88ccff;margin-bottom:3px;}
+.math-card .fx-big{font-size:14px;color:#ffee66;font-weight:bold;text-align:center;margin:3px 0 6px;}
+.math-row{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px;}
+.badge-btn{font-size:10px;padding:4px 8px;border-radius:3px;font-weight:bold;cursor:pointer;border:none;transition:filter 0.15s;font-family:'Courier New',monospace;min-height:30px;}
+.badge-btn:hover,.badge-btn:active{filter:brightness(1.4);}
+.badge-btn.yes{background:#143a14;color:#66ff88;border:1px solid #2a6a2a;}
+.badge-btn.no{background:#3a1414;color:#ff8866;border:1px solid #6a2a2a;}
+.badge-btn.neutral{background:#1a1a3a;color:#88aaff;border:1px solid #334;}
+.proof-panel{display:none;background:#07071a;border:1px solid #3355aa;border-radius:6px;margin:3px 0 5px;overflow:hidden;}
+.proof-panel.open{display:block;}
+.proof-canvas{display:block;width:100%!important;border-radius:4px 4px 0 0;}
+.tog-btn{background:#0e1a3a;color:#88aaff;border:1px solid #2a4488;border-radius:0 0 4px 4px;font-family:'Courier New',monospace;font-size:9px;padding:4px 8px;cursor:pointer;width:100%;text-align:left;display:block;min-height:28px;}
+.alg-panel{display:none;padding:8px 10px;background:#050510;border-top:1px solid #1a2a44;font-size:10px;line-height:1.8;font-family:'Courier New',monospace;}
+.math-def{font-size:10px;color:#9aadcc;line-height:1.5;margin-bottom:3px;}
+.math-def strong{color:#ccddff;}
+.mini-graph-wrap{text-align:center;margin:5px 0;}
+.mini-graph-wrap canvas{border:1px solid #334;border-radius:4px;display:inline-block;}
+#overlay .main-btn{background:#1a3366;color:#cce;border:1px solid #336;padding:10px 24px;border-radius:8px;font-size:14px;cursor:pointer;margin-top:8px;font-family:'Courier New',monospace;min-height:44px;touch-action:manipulation;}
+#overlay .main-btn:active{background:#2244aa;}
+#overlay .phase-banner{font-size:13px;color:#cc88ff;font-weight:bold;text-align:center;margin:5px 0;border:1px solid #664488;background:#1a0a2a;padding:6px 14px;border-radius:6px;max-width:440px;width:100%;}
+
+/* Pause overlay */
+#pause-overlay{display:none;position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(4,4,16,0.9);flex-direction:column;align-items:center;justify-content:center;border-radius:4px;z-index:11;padding:20px;}
+
+/* Desktop ctrl bar — hidden on mobile */
+.ctrl-bar{display:flex;gap:6px;margin-top:4px;justify-content:center;flex-wrap:wrap;}
+.ctrl-btn{background:#101028;color:#aaccff;border:1px solid #2a2a44;padding:5px 12px;border-radius:6px;font-family:'Courier New',monospace;font-size:10px;cursor:pointer;min-height:32px;touch-action:manipulation;}
+.ctrl-btn:hover,.ctrl-btn:active{background:#1e1e44;}
+#controls-hint{font-size:9px;color:#3a4488;text-align:center;margin-top:3px;}
+
+/* ── MOBILE D-PAD ─────────────────────────────────────────────────────── */
+#mobile-controls{
+  display:none;
+  position:absolute;
+  bottom:8px; left:0; right:0;
+  pointer-events:none;
+  z-index:20;
+}
+#dpad{
+  position:absolute;
+  bottom:8px; left:10px;
+  width:130px; height:130px;
+  pointer-events:all;
+}
+.dpad-btn{
+  position:absolute;
+  width:42px; height:42px;
+  background:rgba(100,120,200,0.25);
+  border:2px solid rgba(100,140,255,0.5);
+  border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px; color:rgba(150,180,255,0.9);
+  cursor:pointer; user-select:none;
+  -webkit-tap-highlight-color:transparent;
+  transition:background 0.08s;
+}
+.dpad-btn:active, .dpad-btn.pressed{background:rgba(100,120,200,0.55);}
+#dpad-up   {top:0;   left:44px;}
+#dpad-down {bottom:0;left:44px;}
+#dpad-left {top:44px;left:0;}
+#dpad-right{top:44px;left:88px;}
+#dpad-center{top:44px;left:44px;border-radius:50%;font-size:11px;color:rgba(150,180,255,0.5);}
+
+#shoot-btn{
+  position:absolute;
+  bottom:20px; right:16px;
+  width:70px; height:70px;
+  background:rgba(100,255,150,0.2);
+  border:2px solid rgba(100,255,150,0.5);
+  border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:26px;
+  cursor:pointer; user-select:none;
+  -webkit-tap-highlight-color:transparent;
+  pointer-events:all;
+  transition:background 0.08s;
+}
+#shoot-btn:active{background:rgba(100,255,150,0.5);}
+
+#pause-btn-mobile{
+  position:absolute;
+  top:6px; right:6px;
+  width:36px; height:36px;
+  background:rgba(40,40,80,0.7);
+  border:1px solid #2a2a66;
+  border-radius:6px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;
+  cursor:pointer; user-select:none;
+  pointer-events:all;
+  -webkit-tap-highlight-color:transparent;
+}
+
+/* Show d-pad only on touch devices */
+@media (hover:none) and (pointer:coarse){
+  #mobile-controls{display:block;}
+  #controls-hint{display:none;}
+  canvas{cursor:default;}
+  /* Make ctrl-bar buttons bigger */
+  .ctrl-btn{min-height:38px;padding:6px 12px;}
+}
+
+/* Responsive font scaling */
+@media (max-width:400px){
+  .hud-val{font-size:10px;}
+  .hud-label{font-size:7px;}
+  #enemy-name{font-size:10px;}
+}
+</style>
+</head>
+<body>
+<div id="game-wrap">
+  <div id="hud">
+    <div class="hud-block"><span class="hud-label">Nivel</span><span class="hud-val lvl" id="h-lvl">1</span></div>
+    <div class="hud-block" style="min-width:70px;"><span class="hud-label">Fase</span><span class="hud-val phase" id="h-phase">Funciones</span></div>
+    <div class="hud-block"><span class="hud-label">Vidas</span><span class="hud-val hp" id="h-hp">100</span><div class="bar-wrap"><div class="bar-inner bar-hp" id="bar-hp" style="width:100%"></div></div></div>
+    <div class="hud-block"><span class="hud-label">Ataque</span><span class="hud-val dmg" id="h-dmg">20</span></div>
+    <div class="hud-block"><span class="hud-label">Veneno</span><span class="hud-val" id="h-bullets">5</span><div class="bar-wrap"><div class="bar-inner" id="bar-reload" style="width:0%;background:#ffcc44"></div></div></div>
+    <div class="hud-block"><span class="hud-label">Score</span><span class="hud-val" id="h-score">0</span></div>
+    <div class="hud-block"><span class="hud-label">Kills</span><span class="hud-val" id="h-kills">0</span></div>
+  </div>
+  <div id="enemy-hud">
+    <div id="enemy-name">-</div><div id="enemy-fx">-</div>
+    <div id="enemy-hp-row"><div id="enemy-hp-bar-wrap"><div id="enemy-hp-bar" style="width:100%"></div></div><span id="enemy-hp-txt">-</span></div>
+  </div>
+  <div id="canvas-wrap">
+    <canvas id="c"></canvas>
+    <canvas id="deathCanvas"></canvas>
+
+    <!-- Mobile controls overlay (inside canvas-wrap so it scales with it) -->
+    <div id="mobile-controls">
+      <div id="dpad">
+        <div class="dpad-btn" id="dpad-up"    data-dir="up">▲</div>
+        <div class="dpad-btn" id="dpad-left"  data-dir="left">◀</div>
+        <div class="dpad-btn" id="dpad-center"></div>
+        <div class="dpad-btn" id="dpad-right" data-dir="right">▶</div>
+        <div class="dpad-btn" id="dpad-down"  data-dir="down">▼</div>
+      </div>
+      <div id="shoot-btn">💊</div>
+      <div id="pause-btn-mobile">⏸</div>
+    </div>
+
+    <div id="pause-overlay">
+      <h2 style="font-size:18px;color:#ffcc44;margin-bottom:12px;font-family:'Courier New',monospace;">PAUSADO</h2>
+      <div style="display:flex;flex-direction:column;gap:10px;width:200px;">
+        <button onclick="togglePause()" class="ctrl-btn" style="padding:12px;font-size:13px;">Continuar</button>
+        <button onclick="confirmRestart()" class="ctrl-btn" style="padding:12px;color:#ffaacc;">Reiniciar nivel</button>
+        <button onclick="goToMenu()" class="ctrl-btn" style="padding:12px;color:#aaffdd;">Menu principal</button>
+      </div>
+    </div>
+    <div id="overlay">
+      <h2 id="ov-title">Serpientes Funcion</h2>
+      <p class="sub" id="ov-desc">Derrota serpientes-funcion para aprender matematicas.</p>
+      <div id="ov-phase-banner" class="phase-banner" style="display:none"></div>
+      <div id="ov-math" style="display:none;width:100%;max-width:440px;"></div>
+      <button class="main-btn" id="ov-btn">Comenzar</button>
+    </div>
+  </div>
+  <div class="ctrl-bar">
+    <button class="ctrl-btn" id="btn-pause" onclick="togglePause()">Pausar (P)</button>
+    <button class="ctrl-btn" onclick="confirmRestart()">Reiniciar</button>
+    <button class="ctrl-btn" onclick="goToMenu()">Menu</button>
+    <button class="ctrl-btn" onclick="showBooks()" style="color:#ffcc44;">Libros</button>
+  </div>
+  <div id="controls-hint">Flechas / WASD: mover | Espacio: disparar | P: pausar</div>
+</div>
+<script>
+
+// CANVAS SETUP
+var canvas = document.getElementById('c');
+var ctx = canvas.getContext('2d');
+var dCanvas = document.getElementById('deathCanvas');
+var dCtx = dCanvas.getContext('2d');
+var CELL=16, COLS=42, ROWS=38;
+var W=COLS*CELL, H=ROWS*CELL;
+canvas.width=W; canvas.height=H;
+// CSS scaling: width:100% set by stylesheet, height follows aspect ratio
+dCanvas.width=W; dCanvas.height=H;
+var MID_X=Math.floor(COLS/2), MID_Y=Math.floor(ROWS/2);
+var ORIG_X=MID_X*CELL, ORIG_Y=MID_Y*CELL;
+
+// ── MOBILE INPUT ──────────────────────────────────────────────────────────
+// D-pad buttons
+(function setupMobile(){
+  var dirs={up:{x:0,y:-1},down:{x:0,y:1},left:{x:-1,y:0},right:{x:1,y:0}};
+  ['up','down','left','right'].forEach(function(d){
+    var btn=document.getElementById('dpad-'+d);
+    if(!btn)return;
+    function press(ev){
+      ev.preventDefault();
+      if(typeof player==='undefined'||gameState!=='playing')return;
+      var dir=dirs[d];
+      // prevent 180° reversal
+      if(dir.x!==0&&player.dir.x===-dir.x)return;
+      if(dir.y!==0&&player.dir.y===-dir.y)return;
+      player.nextDir={x:dir.x,y:dir.y};
+      btn.classList.add('pressed');
+    }
+    function release(ev){ev.preventDefault();btn.classList.remove('pressed');}
+    btn.addEventListener('touchstart',press,{passive:false});
+    btn.addEventListener('touchend',release,{passive:false});
+    btn.addEventListener('mousedown',press);
+    btn.addEventListener('mouseup',release);
+  });
+
+  // Shoot button
+  var shootBt=document.getElementById('shoot-btn');
+  if(shootBt){
+    shootBt.addEventListener('touchstart',function(ev){
+      ev.preventDefault();
+      if(gameState==='playing')shootPlayer();
+    },{passive:false});
+    shootBt.addEventListener('mousedown',function(){
+      if(gameState==='playing')shootPlayer();
+    });
+  }
+
+  // Mobile pause button
+  var pauseBt=document.getElementById('pause-btn-mobile');
+  if(pauseBt){
+    pauseBt.addEventListener('touchstart',function(ev){
+      ev.preventDefault(); togglePause();
+    },{passive:false});
+  }
+
+  // Swipe on canvas (alternative to d-pad)
+  var swipeStart={x:0,y:0};
+  var SWIPE_MIN=20; // px threshold
+  canvas.addEventListener('touchstart',function(ev){
+    if(ev.touches.length===1){
+      swipeStart.x=ev.touches[0].clientX;
+      swipeStart.y=ev.touches[0].clientY;
+    }
+  },{passive:true});
+  canvas.addEventListener('touchend',function(ev){
+    if(gameState!=='playing')return;
+    var dx=ev.changedTouches[0].clientX-swipeStart.x;
+    var dy=ev.changedTouches[0].clientY-swipeStart.y;
+    if(Math.abs(dx)<SWIPE_MIN&&Math.abs(dy)<SWIPE_MIN){
+      // tap = shoot
+      shootPlayer(); return;
+    }
+    var horizontal=Math.abs(dx)>Math.abs(dy);
+    if(horizontal){
+      var nd=dx>0?{x:1,y:0}:{x:-1,y:0};
+      if(nd.x!==-player.dir.x)player.nextDir=nd;
+    } else {
+      var nd2=dy>0?{x:0,y:1}:{x:0,y:-1};
+      if(nd2.y!==-player.dir.y)player.nextDir=nd2;
+    }
+  },{passive:true});
+
+  // Prevent default touch scroll on canvas to avoid page bouncing during play
+  canvas.addEventListener('touchmove',function(ev){
+    if(gameState==='playing')ev.preventDefault();
+  },{passive:false});
+})();
+
+// PROOF SYSTEM
+var _pc=0;
+var _af={};
+
+function uid(){ return 'p'+(++_pc); }
+
+function badgeBtn(cls, label, key, pid){
+  return '<button class="badge-btn '+cls+'" data-pid="'+pid+'" data-key="'+key+'">'+label+' [?]</button>'+
+         '<div class="proof-panel" id="'+pid+'"></div>';
+}
+
+document.addEventListener('click', function(ev){
+  var el = ev.target;
+  if(el.getAttribute && el.getAttribute('data-pid')){
+    toggleProof(el.getAttribute('data-pid'), el.getAttribute('data-key'));
+    return;
+  }
+  if(el.getAttribute && el.getAttribute('data-togpid')){
+    var pid2=el.getAttribute('data-togpid');
+    if(window['spm_'+pid2]) window['spm_'+pid2]();
+  }
+});
+
+function toggleProof(pid, key){
+  var el=document.getElementById(pid);
+  if(!el) return;
+  var card=el.closest('.math-card');
+  var enemy=card?card._enemy:null;
+  if(card) card.querySelectorAll('.proof-panel').forEach(function(p){
+    if(p!==el){ p.classList.remove('open'); if(_af[p.id]){cancelAnimationFrame(_af[p.id]);delete _af[p.id];} }
+  });
+  var wasOpen=el.classList.contains('open');
+  el.classList.toggle('open');
+  if(_af[pid]){cancelAnimationFrame(_af[pid]);delete _af[pid];}
+  if(!wasOpen && enemy) renderProof(el, pid, key, enemy);
+}
+
+function buildMathCard(e){
+  var d=e.mathDef;
+  var p1=uid(),p2=uid(),p3=uid(),p4=uid(),p5=uid(),p6=uid();
+  var html='<div class="math-card" data-eid="'+e.id+'">';
+  html+='<h3>'+e.name+'</h3>';
+  html+='<div class="fx-big">'+e.fx+'</div>';
+  html+='<div class="math-row">';
+  html+=badgeBtn('neutral','Dom: '+d.dominio,'dominio',p1);
+  html+=badgeBtn('neutral','Rec: '+d.recorrido,'recorrido',p2);
+  html+=badgeBtn(d.inyectiva?'yes':'no','Inyectiva: '+(d.inyectiva?'Si':'No'),'inyectiva',p3);
+  html+=badgeBtn(d.sobreyectiva?'yes':'no','Sobreyect.: '+(d.sobreyectiva?'Si':'No'),'sobreyectiva',p4);
+  html+=badgeBtn(d.biyectiva?'yes':'no','Biyectiva: '+(d.biyectiva?'Si':'No'),'biyectiva',p5);
+  html+=badgeBtn(d.inversa?'yes':'no','Inversa: '+(d.inversa?'Admite':'No admite'),'inversa',p6);
+  html+='</div>';
+  html+='<div class="math-def"><strong>Definicion:</strong> '+d.definicion+'</div>';
+  html+='<div class="math-def"><strong>Propiedades:</strong> '+d.propiedades+'</div>';
+  if(d.inversaDef) html+='<div class="math-def"><strong>Inversa:</strong> '+d.inversaDef+'</div>';
+  html+='<div class="math-def" style="color:#aaddbb"><strong>Apps:</strong> '+d.apps+'</div>';
+  html+='<div class="mini-graph-wrap"><canvas id="mgc-'+e.id+'" width="200" height="100" style="background:#080814;"></canvas></div>';
+  html+='</div>';
+  setTimeout(function(){
+    var card=document.querySelector('.math-card[data-eid="'+e.id+'"]');
+    if(card) card._enemy=e;
+  },0);
+  return html;
+}
+
+function drawMiniGraph(e){
+  var mc=document.getElementById('mgc-'+e.id);
+  if(!mc) return;
+  var mc2=mc.getContext('2d');
+  mc2.fillStyle='#080814'; mc2.fillRect(0,0,200,100);
+  mc2.strokeStyle='#334466'; mc2.lineWidth=1;
+  mc2.beginPath(); mc2.moveTo(100,0); mc2.lineTo(100,100); mc2.stroke();
+  mc2.beginPath(); mc2.moveTo(0,50); mc2.lineTo(200,50); mc2.stroke();
+  mc2.strokeStyle=e.color; mc2.lineWidth=1.5; mc2.beginPath();
+  var started=false;
+  for(var px=0;px<200;px++){
+    var xVal=(px-100)/20;
+    var raw=evalFuncRaw(e.type,e.cfg,xVal);
+    if(raw===null||!isFinite(raw)||Math.abs(raw)>12){started=false;continue;}
+    var py=50-raw*8;
+    if(py<0||py>100){started=false;continue;}
+    if(!started){mc2.moveTo(px,py);started=true;}else mc2.lineTo(px,py);
+  }
+  mc2.stroke();
+  mc2.fillStyle=e.color; mc2.font='bold 9px Courier New'; mc2.textAlign='left';
+  mc2.fillText(e.fx,4,12);
+}
+
+// ALGEBRAIC PROOF DATA
+function getAlgProof(key, e){
+  var t=e.type, c=e.cfg;
+  var tm={dlin:'linear',dquad:'quadratic',dcubic:'cubic',dsqrt:'sqrt',
+          drational:'rational',dsin:'sin',dcos:'cos',dexp:'exp',dlog:'log',dtan:'tan'};
+  var rt=tm[t]||t;
+  var a=c.a||1, b=c.b||0, k=c.k||4, off=c.off||0, p=c.p||4;
+  var A=c.A||1, w=c.w||1, base=c.base||2;
+  var bname=base===Math.E?'e':''+base;
+  var h=c.b?(-c.b/(2*(c.a||1))).toFixed(2):'0';
+  var vk=(c.c!==undefined)?(c.c-(c.b||0)*(c.b||0)/(4*(c.a||1))).toFixed(2):'0';
+
+  var db={
+    dominio:{
+      linear:{label:'Dominio - Lineal/Afin',steps:['f(x)='+a+'x+'+b+' es polinomio grado 1.','Sin denominadores ni radicandos.','-> Definida para todo x real.','Dom(f) = R']},
+      quadratic:{label:'Dominio - Cuadratica',steps:['f(x)='+a+'x^2+'+b+'x+'+c.c+' es polinomio.','Sin restricciones en x.','Dom(f) = R']},
+      cubic:{label:'Dominio - Cubica',steps:['f(x)=x^3+'+a+'x es polinomio grado 3.','Definida para todo x real.','Dom(f) = R']},
+      sqrt:{label:'Dominio - Raiz(x+'+off+')',steps:['Condicion: radicando >= 0','x + '+off+' >= 0','x >= '+(-off),'Dom(f) = ['+(-off)+', +inf)']},
+      rational:{label:'Dominio - '+k+'/x',steps:['Restriccion: denominador != 0','x != 0 (division por cero)','Dom(f) = R \\ {0}']},
+      sin:{label:'Dominio - A*sin(wx)',steps:['sin(t) definido para todo t real.','No hay restriccion en x.','Dom(f) = R']},
+      cos:{label:'Dominio - A*cos(wx)',steps:['cos(t) definido para todo t real.','Dom(f) = R']},
+      exp:{label:'Dominio - b^x',steps:['b^x definida para todo x real (b>0).','Dom(f) = R']},
+      log:{label:'Dominio - ln(x+'+off+')',steps:['Condicion: argumento > 0','x + '+off+' > 0','x > '+(-off),'Dom(f) = ('+(-off)+', +inf)']},
+      tan:{label:'Dominio - tan(x/'+p+')',steps:['tan = sin/cos, restriccion: cos != 0','x/'+p+' != pi/2 + k*pi','x != '+p+'*pi/2 + k*'+p+'*pi','Dom = R \\ {'+p+'*pi/2 + k*'+p+'*pi}']}
+    },
+    recorrido:{
+      linear:{label:'Recorrido - Lineal/Afin',steps:['Sea y en R. Despejamos x:','y = '+a+'x + '+b,'x = (y - '+b+') / '+a+' esta en R.','Para todo y existe x. Rec(f) = R']},
+      quadratic:{label:'Recorrido - Parabola (vertice k='+vk+')',steps:['Completar cuadrado: f(x)='+a+'(x-h)^2+'+vk,(a>0?'a>0 -> f(x) >= '+vk:'a<0 -> f(x) <= '+vk),'Rec = '+(a>0?'['+vk+', +inf)':'(-inf, '+vk+']')]},
+      cubic:{label:'Recorrido - Cubica',steps:['lim(x->+inf)=+inf, lim(x->-inf)=-inf','f continua (polinomio).','TVI (Bolzano): todo y en R es alcanzado.','Rec(f) = R']},
+      sqrt:{label:'Recorrido - Raiz',steps:['raiz(u) >= 0 siempre.','En x='+(-off)+': f=0 (minimo).','Crece sin limite.','Rec(f) = [0, +inf)']},
+      rational:{label:'Recorrido - '+k+'/x',steps:['Si y!=0: x='+k+'/y existe.','Si y=0: '+k+'/x=0 => '+k+'=0, imposible.','Rec(f) = R \\ {0}']},
+      sin:{label:'Recorrido - '+A+'*sin('+w+'x)',steps:['|sin| <= 1 siempre.','Max: A*1='+A+', Min: A*(-1)='+(-A)+'.','Rec(f) = ['+(-A)+', '+A+']']},
+      cos:{label:'Recorrido - '+A+'*cos('+w+'x)',steps:['|cos| <= 1 siempre.','Max en x=0: f(0)='+A+'.','Rec(f) = ['+(-A)+', '+A+']']},
+      exp:{label:'Recorrido - '+bname+'^x',steps:[bname+'^x > 0 para todo x.','Para y>0: x=log_'+bname+'(y) satisface.','Para y<=0: sin solucion real.','Rec(f) = (0, +inf)']},
+      log:{label:'Recorrido - ln(x+'+off+')',steps:['lim->-inf cuando x->'+(-off)+'+','lim->+inf cuando x->+inf','Para y en R: x=e^y-'+off+' satisface.','Rec(f) = R']},
+      tan:{label:'Recorrido - tan(x/'+p+')',steps:['tan tiende a +inf y -inf.','Para y en R: x='+p+'*arctan(y) satisface.','Rec(f) = R']}
+    },
+    inyectiva:{
+      linear:{label:'Inyectividad - Lineal/Afin',steps:['Suponer f(x1)=f(x2):',a+'*x1+'+b+' = '+a+'*x2+'+b,a+'*(x1-x2)=0 -> x1=x2 (a='+a+'!=0)','f es inyectiva']},
+      quadratic:{label:'No inyectividad - Parabola',steps:['Eje simetria: x=h='+h,'Tomar x1='+h+'+1, x2='+h+'-1 (distintos).','f(x1)='+a+'*1+'+vk+'=f(x2)','-> misma imagen, distintos x.','f NO es inyectiva']},
+      cubic:{label:'Inyectividad - Cubica (a='+a+')',steps:(a===0?['x1^3=x2^3 -> x1=x2 (cubica biyectiva)','f es inyectiva']:['f\'(x)=3x^2+'+a+', tiene extremos locales.','Existen x1!=x2 con f(x1)=f(x2).','f NO es inyectiva'])},
+      sqrt:{label:'Inyectividad - Raiz',steps:['Suponer raiz(x1+'+off+')=raiz(x2+'+off+').','Elevar al cuadrado: x1+'+off+'=x2+'+off+'.','x1=x2. f es inyectiva']},
+      rational:{label:'Inyectividad - '+k+'/x',steps:['Suponer '+k+'/x1='+k+'/x2.','Multiplicar: '+k+'*x2='+k+'*x1 -> x1=x2.','f es inyectiva']},
+      sin:{label:'No inyectividad - Seno',steps:['sin(pi-t)=sin(t) siempre.','f(x)=f(pi/'+w+'-x). Ej: f(0)=f(pi/'+w+')=0.','f NO es inyectiva']},
+      cos:{label:'No inyectividad - Coseno',steps:['cos par: cos(-t)=cos(t).','f(x)=f(-x). Ej: f(1)=f(-1).','f NO es inyectiva']},
+      exp:{label:'Inyectividad - '+bname+'^x',steps:['Suponer '+bname+'^x1='+bname+'^x2.','Aplicar log_'+bname+': x1=x2.','f es inyectiva']},
+      log:{label:'Inyectividad - ln(x+'+off+')',steps:['Suponer ln(x1+'+off+')=ln(x2+'+off+').','Aplicar exp: x1+'+off+'=x2+'+off+'.','x1=x2. f es inyectiva']},
+      tan:{label:'Inyectividad - tan(x/'+p+') por rama',steps:["f'(x)=1/("+p+"*cos^2(x/"+p+"))>0 en Dom.",'Creciente estricta en cada rama.','Sup. f(x1)=f(x2) misma rama -> x1=x2.','f es inyectiva en cada rama']}
+    },
+    sobreyectiva:{
+      linear:{label:'Sobreyectividad - Lineal/Afin',steps:['Sea y en R. Resolver '+a+'x+'+b+'=y:','x=(y-'+b+')/'+a+' esta en R.','Para todo y existe x. f es sobreyectiva']},
+      quadratic:{label:'No sobreyectividad - Parabola',steps:['Vertice en k='+vk+'.',(a>0?'Para y='+((+vk)-1)+': discriminante<0.':'Para y='+((+vk)+1)+': discriminante<0.'),'Ese y no tiene preimagen.','f NO es sobreyectiva sobre R']},
+      cubic:{label:'Sobreyectividad - Cubica',steps:['lim=+inf y -inf, f continua.','TVI garantiza todo y en R es alcanzado.','f es sobreyectiva']},
+      sqrt:{label:'No sobreyectividad - Raiz',steps:['raiz(x+'+off+')>=0 siempre.','Para y=-1: sin solucion real.','Rec=[0,+inf) != R. f NO es sobreyectiva']},
+      rational:{label:'No sobreyectividad - '+k+'/x',steps:['Intentar '+k+'/x=0 -> '+k+'=0, imposible.','y=0 no tiene preimagen.','f NO es sobreyectiva sobre R']},
+      sin:{label:'No sobreyectividad - Seno',steps:['|f(x)|<='+A+' siempre.','Para y='+((A)+1)+': |sin|>1, imposible.','f NO es sobreyectiva sobre R']},
+      cos:{label:'No sobreyectividad - Coseno',steps:['|f(x)|<='+A+' siempre.','Rec=['+(-A)+','+A+'] != R.','f NO es sobreyectiva sobre R']},
+      exp:{label:'No sobreyectividad - '+bname+'^x',steps:[bname+'^x>0 siempre.','Para y=-1: sin solucion.','f NO es sobreyectiva sobre R']},
+      log:{label:'Sobreyectividad - ln(x+'+off+')',steps:['Sea y en R. Tomar x=e^y-'+off+'.','x>'+(-off)+' y f(x)=ln(e^y)=y. Existe.','f es sobreyectiva']},
+      tan:{label:'Sobreyectividad - tan(x/'+p+')',steps:['Sea y en R. Tomar x='+p+'*arctan(y).','arctan(y) existe para todo y.','f(x)=tan(arctan(y))=y. f es sobreyectiva']}
+    },
+    biyectiva:{
+      linear:{label:'Biyectividad - Lineal/Afin',steps:['Inyectiva: f(x1)=f(x2)->x1=x2 OK','Sobreyect.: para todo y existe x OK','Iny AND Sobre => Biyectiva','f es biyectiva sobre R']},
+      quadratic:{label:'No biyectividad - Parabola',steps:['No inyectiva: f(h+1)=f(h-1), h+1!=h-1','No sobreyect.: Rec!= R','f NO es biyectiva']},
+      cubic:{label:'Biyectividad - Cubica',steps:(a===0?['Inyectiva y sobreyectiva (TVI).','f es biyectiva']:['No inyectiva (extremos locales).','f NO es biyectiva'])},
+      sqrt:{label:'Biyect. - Raiz',steps:['Inyectiva OK','No sobreyect. sobre R: Rec=[0,+inf)','NO biyectiva sobre R','Si biyectiva como f:Dom->[0,+inf)']},
+      rational:{label:'Biyect. - '+k+'/x',steps:['Inyectiva en R\\{0} OK','No sobreyect. sobre R: y=0 no en Rec','NO biyectiva sobre R']},
+      sin:{label:'No biyect. - Seno',steps:['No inyectiva: f(x)=f(pi/w-x)','No sobreyect.: acotada','f NO es biyectiva']},
+      cos:{label:'No biyect. - Coseno',steps:['No inyectiva: f(x)=f(-x)','No sobreyect.: acotada','f NO es biyectiva']},
+      exp:{label:'Biyect. - '+bname+'^x',steps:['Inyectiva OK','No sobreyect. sobre R: Rec=(0,+inf)','Biyectiva como f:R->(0,+inf)','NO biyectiva sobre R']},
+      log:{label:'Biyectividad - ln(x+'+off+')',steps:['Inyectiva: ln estrictamente creciente OK','Sobreyect.: todo y en R es alcanzado OK','Iny AND Sobre => Biyectiva']},
+      tan:{label:'Biyect. - tan(x/'+p+') por rama',steps:["f'(x)>0 en Dom: creciente estricta OK",'Rec=R (tiende a +/-inf) OK','Biyectiva en cada rama']}
+    },
+    inversa:{
+      linear:{label:'Inversa - '+e.fx,steps:['Partir de: y = '+a+'x + '+b,'Despejar x: '+a+'x = y - '+b,'x = (y - '+b+') / '+a,'f^-1(y) = (y - '+b+') / '+a,'Verificar: f(f^-1(y))='+a+'*(y-'+b+')/'+a+'+'+b+'=y OK']},
+      quadratic:{label:'Inversa restringida - Parabola',steps:['f no inyectiva globalmente.','Restringir a x >= h = '+h+':','y = '+a+'*(x-h)^2 + '+vk,'(x-h)^2 = (y-'+vk+')/'+a,'x = '+h+' + raiz((y-'+vk+')/'+a+'), y >= '+vk]},
+      cubic:{label:'Inversa - Cubica',steps:(a===0?['Partir de: y = x^3','x = cubraiz(y)','f^-1(y) = y^(1/3)']:['No inyectiva: sin inversa global.','Inversas locales en cada rama.'])},
+      sqrt:{label:'Inversa - Raiz(x+'+off+')',steps:['Partir de: y = raiz(x+'+off+'), y>=0','Elevar al cuadrado: y^2 = x+'+off,'x = y^2 - '+off,'f^-1(y) = y^2 - '+off+', y >= 0','Verificar: raiz(y^2-'+off+'+'+off+')=y OK']},
+      rational:{label:'Inversa - '+k+'/x',steps:['Partir de: y = '+k+'/x','x*y = '+k,'x = '+k+'/y','f^-1(y) = '+k+'/y','f es su propia inversa! (involucion)']},
+      sin:{label:'Inversa restringida - Seno',steps:['sin no inyectiva en R.','Restringir a x en [-pi/(2*'+w+'), pi/(2*'+w+')]','En ese intervalo: creciente estricta.','f^-1(y) = arcsin(y/'+A+') / '+w,'Dom f^-1: [-'+A+', '+A+']']},
+      cos:{label:'Inversa restringida - Coseno',steps:['cos no inyectiva en R.','Restringir a x en [0, pi/'+w+']','f^-1(y) = arccos(y/'+A+') / '+w,'Dom f^-1: [-'+A+', '+A+']']},
+      exp:{label:'Inversa - '+bname+'^x',steps:['Partir de: y = '+bname+'^x (y>0)','Aplicar log_'+bname+': x = log_'+bname+'(y)','x = ln(y)/ln('+bname+')','f^-1(y) = ln(y)/ln('+bname+')']},
+      log:{label:'Inversa - ln(x+'+off+')',steps:['Partir de: y = ln(x+'+off+')','Aplicar exp: e^y = x+'+off,'x = e^y - '+off,'f^-1(y) = e^y - '+off,'Verificar: ln(e^y-'+off+'+'+off+')=y OK']},
+      tan:{label:'Inversa - tan(x/'+p+')',steps:['Partir de: y = tan(x/'+p+')','arctan(y) = x/'+p,'x = '+p+'*arctan(y)','f^-1(y) = '+p+'*arctan(y)','Dom: R, Rec: (-'+p+'*pi/2, '+p+'*pi/2)']}
+    }
+  };
+  return (db[key]&&db[key][rt])||null;
+}
+
+// PROOF CANVAS RENDERER
+function renderProof(panel, pid, key, e){
+  var d=e.mathDef;
+  var CW=380, CH=(key==='inversa'?360:160);
+  var algProof=getAlgProof(key,e);
+  panel.innerHTML='<canvas class="proof-canvas" id="pc-'+pid+'" width="'+CW+'" height="'+CH+'"></canvas>'+
+    '<button class="tog-btn" data-togpid="'+pid+'">Demostracion algebraica</button>'+
+    '<div class="alg-panel" id="alg-'+pid+'"></div>';
+  var cv=document.getElementById('pc-'+pid);
+  if(!cv) return;
+  var cx2=cv.getContext('2d');
+  var t=0;
+  var mode='visual';
+
+  window['spm_'+pid]=function(){
+    if(mode==='visual'){
+      mode='algebraic';
+      if(_af[pid]){cancelAnimationFrame(_af[pid]);delete _af[pid];}
+      cv.style.display='none';
+      var ad=document.getElementById('alg-'+pid);
+      var tb=panel.querySelector('.tog-btn');
+      ad.style.display='block';
+      tb.textContent='Ver animacion visual';
+      if(algProof){
+        var html='<div style="color:#88ccff;font-weight:bold;margin-bottom:6px;border-bottom:1px solid #1a2a44;padding-bottom:3px;font-size:11px;">'+algProof.label+'</div>';
+        algProof.steps.forEach(function(s){
+          var col=s.indexOf('OK')>=0||s.charAt(0)==='+' ? '#66ff88':
+                  s.indexOf('NO')>=0||s.charAt(0)==='!'?'#ff6644':
+                  s.charAt(0)===' '?'#ffee88':'#aac8ff';
+          html+='<div style="color:'+col+';">'+s+'</div>';
+        });
+        ad.innerHTML=html;
+      } else {
+        ad.innerHTML='<span style="color:#664;">No disponible para este tipo.</span>';
+      }
+    } else {
+      mode='visual'; t=0;
+      cv.style.display='block';
+      document.getElementById('alg-'+pid).style.display='none';
+      panel.querySelector('.tog-btn').textContent='Demostracion algebraica';
+      if(proofs[key]) _af[pid]=requestAnimationFrame(proofs[key]);
+    }
+  };
+
+  // Helpers
+  function clr(){ cx2.fillStyle='#07071a'; cx2.fillRect(0,0,CW,CH); }
+  function axes(ox,oy,scx,scy){
+    cx2.strokeStyle='#2a3a66'; cx2.lineWidth=1;
+    cx2.beginPath();cx2.moveTo(0,oy);cx2.lineTo(CW,oy);cx2.stroke();
+    cx2.beginPath();cx2.moveTo(ox,0);cx2.lineTo(ox,CH);cx2.stroke();
+    cx2.fillStyle='#3a4477'; cx2.font='9px Courier New'; cx2.textAlign='center';
+    for(var i=-10;i<=10;i++){
+      if(i===0)continue;
+      var px=ox+i*scx; if(px>5&&px<CW-5){cx2.beginPath();cx2.moveTo(px,oy-3);cx2.lineTo(px,oy+3);cx2.stroke();if(i%2===0)cx2.fillText(i,px,oy+12);}
+      var py2=oy-i*scy; if(py2>5&&py2<CH-5){cx2.beginPath();cx2.moveTo(ox-3,py2);cx2.lineTo(ox+3,py2);cx2.stroke();if(i%2===0){cx2.textAlign='right';cx2.fillText(i,ox-4,py2+3);cx2.textAlign='center';}}
+    }
+    cx2.fillStyle='#4455aa'; cx2.font='bold 10px Courier New';
+    cx2.fillText('x',CW-6,oy-4); cx2.textAlign='left'; cx2.fillText('y',ox+4,10); cx2.textAlign='center';
+  }
+  function plotF(ox,oy,scx,scy,col,alpha,xMn,xMx){
+    cx2.strokeStyle=col+(alpha<1?Math.round(alpha*255).toString(16).padStart(2,'0'):'');
+    cx2.lineWidth=2; cx2.beginPath(); var st=false;
+    for(var px=0;px<CW;px++){
+      var xv=(px-ox)/scx; if(xv<xMn||xv>xMx){st=false;continue;}
+      var raw=evalFuncRaw(e.type,e.cfg,xv);
+      if(raw===null||!isFinite(raw)||Math.abs(raw)>40){st=false;continue;}
+      var py2=oy-raw*scy; if(py2<-20||py2>CH+20){st=false;continue;}
+      if(!st){cx2.moveTo(px,py2);st=true;}else cx2.lineTo(px,py2);
+    }
+    cx2.stroke();
+  }
+  function hln(oy,y,scy,col,alph,lbl){
+    var py2=oy-y*scy; if(py2<0||py2>CH)return;
+    cx2.strokeStyle=col;cx2.lineWidth=1.5;cx2.setLineDash([5,4]);cx2.globalAlpha=alph;
+    cx2.beginPath();cx2.moveTo(0,py2);cx2.lineTo(CW,py2);cx2.stroke();
+    cx2.setLineDash([]);cx2.globalAlpha=1;
+    if(lbl){cx2.fillStyle=col;cx2.font='bold 10px Courier New';cx2.textAlign='left';cx2.fillText(lbl,4,py2-3);}
+  }
+  function vln(ox,x,scx,col,alph,lbl){
+    var px=ox+x*scx; if(px<0||px>CW)return;
+    cx2.strokeStyle=col;cx2.lineWidth=1.5;cx2.setLineDash([5,4]);cx2.globalAlpha=alph;
+    cx2.beginPath();cx2.moveTo(px,0);cx2.lineTo(px,CH);cx2.stroke();
+    cx2.setLineDash([]);cx2.globalAlpha=1;
+    if(lbl){cx2.fillStyle=col;cx2.font='bold 10px Courier New';cx2.textAlign='center';cx2.fillText(lbl,px,12);}
+  }
+  function dot(ox,oy,scx,scy,xv,yv,col,r){
+    cx2.beginPath();cx2.arc(ox+xv*scx,oy-yv*scy,r||4,0,Math.PI*2);cx2.fillStyle=col;cx2.fill();
+  }
+  function txt(x,y,s,col,sz,al){
+    cx2.fillStyle=col||'#aac8ff';cx2.font=(sz||10)+'px Courier New';cx2.textAlign=al||'left';cx2.fillText(s,x,y);
+  }
+  function stxt(lines,startY,alpha){
+    cx2.globalAlpha=Math.min(1,alpha);
+    lines.forEach(function(l,i){
+      var col=l.indexOf('OK')>=0||l.charAt(0)==='+'?'#66ff88':l.indexOf('NO')>=0||l.charAt(0)==='!'?'#ff6644':'#aac8ff';
+      txt(8,startY+i*15,l,col,10,'left');
+    });
+    cx2.globalAlpha=1;
+  }
+
+  var OX=50, OY=CH/2, SCX=28, SCY=22;
+
+  var proofs={
+    dominio: function(){
+      clr(); axes(OX,OY,SCX,SCY);
+      var prog=Math.min(1,t/120);
+      if(e.type==='sqrt'||e.type==='dsqrt'){
+        var of2=e.cfg.off||0;
+        cx2.fillStyle='rgba(200,40,40,0.18)';cx2.fillRect(0,0,Math.max(0,OX+(-of2)*SCX),CH);
+        cx2.fillStyle='rgba(50,200,100,0.12)';cx2.fillRect(Math.max(0,OX+(-of2)*SCX),0,CW,CH);
+        vln(OX,-of2,SCX,'#ff4444',0.9,'x='+(-of2));
+        plotF(OX,OY,SCX,SCY,e.color,prog,-of2+0.01,12);
+        stxt(['Dom de raiz(x+'+of2+'):','Condicion: x+'+of2+' >= 0','x >= '+(-of2),'Dom = ['+(-of2)+', +inf)'],10,prog*3);
+      } else if(e.type==='log'||e.type==='dlog'){
+        var of3=e.cfg.off||10;
+        cx2.fillStyle='rgba(200,40,40,0.18)';cx2.fillRect(0,0,Math.max(0,OX+(-of3)*SCX),CH);
+        cx2.fillStyle='rgba(50,200,100,0.12)';cx2.fillRect(Math.max(0,OX+(-of3)*SCX),0,CW,CH);
+        vln(OX,-of3,SCX,'#ff4444',0.9,'x='+(-of3));
+        plotF(OX,OY,SCX,SCY,e.color,prog,-of3+0.01,10);
+        stxt(['ln(x+'+of3+'): argumento > 0','x+'+of3+' > 0','x > '+(-of3),'Dom = ('+(-of3)+', +inf)'],10,prog*3);
+      } else if(e.type==='rational'||e.type==='drational'){
+        vln(OX,0,SCX,'#ff4444',0.9,'x=0 !');
+        cx2.fillStyle='rgba(200,40,40,0.18)';cx2.fillRect(OX-4,0,8,CH);
+        plotF(OX,OY,SCX,SCY,e.color,prog,-8,-0.3);
+        plotF(OX,OY,SCX,SCY,e.color,prog,0.3,8);
+        stxt([e.cfg.k+'/x: x=0 indefinida','x != 0','Dom = R \\ {0}','2 ramas: x<0 y x>0'],10,prog*3);
+      } else if(e.type==='tan'||e.type==='dtan'){
+        var p2=e.cfg.p||4;
+        [-1,0,1].forEach(function(ki){vln(OX,p2*(0.5+ki),SCX,'#ff4444',0.7,''+p2*(0.5+ki));});
+        plotF(OX,OY,SCX,SCY,e.color,prog,-6,6);
+        stxt(['tan(x/'+p2+')=sin/cos','cos(x/'+p2+')=0 -> indefinida','x != '+p2+'*pi/2+k*'+p2+'*pi','Dom = R \\ {asintolas}'],10,prog*3);
+      } else {
+        var pr2=Math.min(1,t/80);
+        plotF(OX,OY,SCX,SCY,e.color,pr2,-10,10);
+        cx2.fillStyle='rgba(50,200,100,0.08)';cx2.fillRect(0,0,CW,CH);
+        stxt(['Polinomio/funcion entera','Sin restricciones en x','Para todo x en R definida','Dom = R'],10,pr2*3);
+      }
+      t++; _af[pid]=requestAnimationFrame(proofs.dominio);
+    },
+    recorrido: function(){
+      clr(); axes(OX,OY,SCX,SCY); var prog=Math.min(1,t/100);
+      plotF(OX,OY,SCX,SCY,e.color,1,-10,10);
+      if(e.type==='quadratic'){
+        var vk2=e.cfg.c-(e.cfg.b||0)*(e.cfg.b||0)/(4*e.cfg.a);
+        var isUp=e.cfg.a>0; var pyV=OY-vk2*SCY;
+        hln(OY,vk2,SCY,'#ffcc44',prog,'y='+vk2.toFixed(1)+' (vertice)');
+        cx2.fillStyle=isUp?'rgba(50,200,100,0.13)':'rgba(200,40,40,0.13)';
+        if(isUp)cx2.fillRect(0,0,CW,Math.max(0,pyV));else cx2.fillRect(0,Math.min(CH,pyV),CW,CH);
+        dot(OX,OY,SCX,SCY,e.cfg.b?(-e.cfg.b/(2*e.cfg.a)):0,vk2,'#ffcc44',5);
+        stxt(['Parabola vertice (h,'+vk2.toFixed(1)+')','a='+e.cfg.a+(e.cfg.a>0?' > 0 abre arriba':' < 0 abre abajo'),
+          (e.cfg.a>0?'minimo en y='+vk2.toFixed(1):'maximo en y='+vk2.toFixed(1)),
+          'Rec = '+(e.cfg.a>0?'['+vk2.toFixed(1)+',+inf)':'(-inf,'+vk2.toFixed(1)+']')],10,prog*3);
+      } else if(e.type==='sin'||e.type==='cos'||e.type==='dsin'||e.type==='dcos'){
+        var A2=e.cfg.A||1; var amp2=e.type.startsWith('d')?(A2*(e.cfg.w||1)):A2;
+        hln(OY,amp2,SCY,'#ffcc44',prog,'y=+'+amp2);
+        hln(OY,-amp2,SCY,'#ff6644',prog,'y=-'+amp2);
+        var py1=OY-amp2*SCY,py3=OY+amp2*SCY;
+        cx2.fillStyle='rgba(50,200,100,0.10)';cx2.fillRect(0,Math.min(py1,py3),CW,Math.abs(py3-py1));
+        stxt(['|sin/cos| <= 1 siempre','Max: A='+amp2+', Min: -A='+(-amp2),'Rec = [-'+amp2+', '+amp2+']'],10,prog*3);
+      } else if(e.type==='exp'||e.type==='dexp'){
+        hln(OY,0,SCY,'#ff4444',prog,'y=0 (asintota)');
+        cx2.fillStyle='rgba(50,200,100,0.10)';cx2.fillRect(0,0,CW,OY);
+        stxt(['b^x > 0 para todo x','Nunca toca y=0','Rec = (0, +inf)'],10,prog*3);
+      } else if(e.type==='sqrt'){
+        hln(OY,0,SCY,'#ffcc44',prog,'y=0 (minimo)');
+        cx2.fillStyle='rgba(50,200,100,0.10)';cx2.fillRect(0,0,CW,OY);
+        stxt(['raiz >= 0 siempre','En x='+(-d.dominio.replace(/[^\d-]/g,'').slice(0,3)||0)+': f=0','Rec = [0, +inf)'],10,prog*3);
+      } else if(e.type==='rational'){
+        hln(OY,0,SCY,'#ff4444',prog,'y=0 ! (asintota)');
+        stxt(['k/x=0 => k=0 imposible','y=0 nunca alcanzado','Rec = R \\ {0}'],10,prog*3);
+      } else {
+        cx2.fillStyle='rgba(50,200,100,0.08)';cx2.fillRect(0,0,CW,CH);
+        stxt(['Funcion continua y no acotada','Toma todos los valores en R','TVI garantiza todo y alcanzado','Rec = R'],10,prog*3);
+      }
+      t++; _af[pid]=requestAnimationFrame(proofs.recorrido);
+    },
+    inyectiva: function(){
+      clr(); axes(OX,OY,SCX,SCY); var prog=Math.min(1,t/100);
+      plotF(OX,OY,SCX,SCY,e.color,1,-10,10);
+      if(d.inyectiva){
+        var yTest=-3+(t/60)*6; var pyT=OY-yTest*SCY;
+        if(pyT>0&&pyT<CH){
+          cx2.strokeStyle='#ffcc44';cx2.lineWidth=1.5;cx2.setLineDash([4,4]);
+          cx2.globalAlpha=Math.min(1,prog*2);
+          cx2.beginPath();cx2.moveTo(0,pyT);cx2.lineTo(CW*prog,pyT);cx2.stroke();
+          cx2.setLineDash([]);cx2.globalAlpha=1;
+          var hits=0;
+          for(var px=0;px<CW;px++){
+            var xv=(px-OX)/SCX;
+            var raw=evalFuncRaw(e.type,e.cfg,xv);
+            if(raw!==null&&isFinite(raw)&&Math.abs(raw-yTest)<0.3)hits++;
+          }
+          cx2.fillStyle=hits<=3?'#66ff88':'#ff6644';
+          txt(CW-80,pyT-6,hits<=3?'1 cruce OK':'varios!','',9,'left');
+        }
+        stxt(['Prueba linea horizontal (amarilla)','Corta grafica a lo sumo 1 vez','Si f(x1)=f(x2) -> x1=x2','f es inyectiva (1 a 1)'],CH-68,prog*3);
+      } else {
+        var h3=e.cfg.b?(-e.cfg.b/(2*(e.cfg.a||1))):0;
+        var x1=h3+1.5, x2=h3-1.5;
+        var y1=evalFuncRaw(e.type,e.cfg,x1);
+        if(y1!==null){
+          var pyL=OY-y1*SCY;
+          cx2.strokeStyle='#ffcc44';cx2.lineWidth=1.5;cx2.setLineDash([4,4]);
+          cx2.beginPath();cx2.moveTo(0,pyL);cx2.lineTo(CW,pyL);cx2.stroke();cx2.setLineDash([]);
+          dot(OX,OY,SCX,SCY,x1,y1,'#ff6644',5);dot(OX,OY,SCX,SCY,x2,y1,'#ff6644',5);
+          txt(OX+x1*SCX+4,OY-y1*SCY-6,'f('+x1.toFixed(1)+')','#ff6644',9,'left');
+          txt(OX+x2*SCX-4,OY-y1*SCY-6,'f('+x2.toFixed(1)+')','#ff6644',9,'right');
+        }
+        stxt(['Contraejemplo (puntos rojos):','f('+x1.toFixed(1)+')=f('+x2.toFixed(1)+') pero '+x1.toFixed(1)+'!='+x2.toFixed(1),'Linea horiz. corta 2 veces','f NO es inyectiva'],CH-68,prog*3);
+      }
+      t++; _af[pid]=requestAnimationFrame(proofs.inyectiva);
+    },
+    sobreyectiva: function(){
+      clr(); axes(OX,OY,SCX,SCY); var prog=Math.min(1,t/100);
+      plotF(OX,OY,SCX,SCY,e.color,1,-10,10);
+      if(d.sobreyectiva){
+        var yT2=Math.sin(t/25)*4; var pyT2=OY-yT2*SCY;
+        cx2.strokeStyle='#66ff88';cx2.lineWidth=1.5;cx2.setLineDash([4,4]);
+        cx2.globalAlpha=0.8;cx2.beginPath();cx2.moveTo(0,pyT2);cx2.lineTo(CW,pyT2);cx2.stroke();
+        cx2.setLineDash([]);cx2.globalAlpha=1;
+        for(var px2=0;px2<CW;px2++){
+          var xv2=(px2-OX)/SCX;
+          var raw2=evalFuncRaw(e.type,e.cfg,xv2);
+          if(raw2!==null&&isFinite(raw2)&&Math.abs(raw2-yT2)<0.25){dot(OX,OY,SCX,SCY,xv2,yT2,'#66ff88',4);break;}
+        }
+        stxt(['Para cada y del codominio,','existe x tal que f(x)=y','linea verde siempre tiene preimagen','f es sobreyectiva'],CH-68,prog*3);
+      } else {
+        var mY=0;
+        if(e.type==='exp'||e.type==='dexp')mY=-1;
+        else if(e.type==='sqrt'||e.type==='dsqrt')mY=-1;
+        else if(e.type==='quadratic')mY=(e.cfg.a>0)?(e.cfg.c-(e.cfg.b||0)*(e.cfg.b||0)/(4*e.cfg.a))-2:-1;
+        else if(e.type==='rational')mY=0;
+        var pyM2=OY-mY*SCY;
+        if(pyM2>0&&pyM2<CH){
+          cx2.strokeStyle='#ff6644';cx2.lineWidth=1.5;cx2.setLineDash([4,4]);
+          cx2.beginPath();cx2.moveTo(0,pyM2);cx2.lineTo(CW,pyM2);cx2.stroke();cx2.setLineDash([]);
+          txt(4,pyM2-5,'y='+mY+' <- nunca alcanzado','#ff6644',9,'left');
+        }
+        stxt(['Hay valores y sin preimagen','y='+mY+' no existe x con f(x)='+mY,'Rec != codominio R','f NO es sobreyectiva'],CH-68,prog*3);
+      }
+      t++; _af[pid]=requestAnimationFrame(proofs.sobreyectiva);
+    },
+    biyectiva: function(){
+      clr(); axes(OX,OY,SCX,SCY); var prog=Math.min(1,t/80);
+      plotF(OX,OY,SCX,SCY,e.color,1,-10,10);
+      if(d.biyectiva){
+        var xS=[-3,-1.5,0,1.5,3];
+        xS.forEach(function(xv3,i){
+          var yv3=evalFuncRaw(e.type,e.cfg,xv3);
+          if(yv3===null||!isFinite(yv3))return;
+          var al=Math.min(1,prog*(1+i*0.3));
+          cx2.globalAlpha=al*0.9;cx2.strokeStyle='#66ff88';cx2.lineWidth=1;
+          cx2.beginPath();cx2.moveTo(OX+xv3*SCX,OY);cx2.lineTo(OX+xv3*SCX,OY-yv3*SCY);cx2.stroke();
+          dot(OX,OY,SCX,SCY,xv3,0,'#44aaff',3);dot(OX,OY,SCX,SCY,xv3,yv3,'#66ff88',3);cx2.globalAlpha=1;
+        });
+        stxt(['Inyectiva + Sobreyectiva','Cada x da un unico y','Cada y viene de algun x','Correspondencia 1-a-1 perfecta'],CH-68,prog*3);
+      } else {
+        var lbl=!d.inyectiva?'Falla inyectividad':'Falla sobreyectividad';
+        txt(CW/2,CH/2-20,'! '+lbl,'#ff6644',12,'center');
+        stxt(['Biyectiva = Iny AND Sobre',(!d.inyectiva?'No inyectiva':'No sobreyectiva'),'-> No puede ser biyectiva','f NO es biyectiva'],CH-68,prog*3);
+      }
+      t++; _af[pid]=requestAnimationFrame(proofs.biyectiva);
+    },
+    inversa: function(){
+      // ── pan/zoom state (initialise once) ──────────────────────────────────
+      if(!cv._inv){
+        cv._inv={
+          panX:0, panY:0,          // offset in canvas pixels
+          zoom:1,                  // scale multiplier
+          dragging:false,
+          lastX:0, lastY:0,
+          lastDist:0               // for pinch-zoom
+        };
+        var iv=cv._inv;
+        // Mouse events
+        cv.addEventListener('mousedown',function(ev){
+          iv.dragging=true;
+          iv.lastX=ev.offsetX; iv.lastY=ev.offsetY;
+          cv.style.cursor='grabbing';
+        });
+        cv.addEventListener('mousemove',function(ev){
+          if(!iv.dragging)return;
+          iv.panX+=ev.offsetX-iv.lastX;
+          iv.panY+=ev.offsetY-iv.lastY;
+          iv.lastX=ev.offsetX; iv.lastY=ev.offsetY;
+        });
+        cv.addEventListener('mouseup',function(){iv.dragging=false;cv.style.cursor='grab';});
+        cv.addEventListener('mouseleave',function(){iv.dragging=false;cv.style.cursor='grab';});
+        // Scroll-wheel zoom (centered on cursor)
+        cv.addEventListener('wheel',function(ev){
+          ev.preventDefault();
+          var rect=cv.getBoundingClientRect();
+          var mx=(ev.clientX-rect.left)*(CW/rect.width);
+          var my=(ev.clientY-rect.top)*(CH/rect.height);
+          var delta=ev.deltaY>0?0.85:1.18;
+          iv.zoom=Math.max(0.3,Math.min(8,iv.zoom*delta));
+          // keep point under cursor fixed
+          iv.panX=mx-(mx-iv.panX)*delta;
+          iv.panY=my-(my-iv.panY)*delta;
+        },{passive:false});
+        // Touch events (pan + pinch)
+        cv.addEventListener('touchstart',function(ev){
+          ev.preventDefault();
+          if(ev.touches.length===1){
+            iv.dragging=true;
+            iv.lastX=ev.touches[0].clientX; iv.lastY=ev.touches[0].clientY;
+          } else if(ev.touches.length===2){
+            iv.dragging=false;
+            var dx=ev.touches[0].clientX-ev.touches[1].clientX;
+            var dy=ev.touches[0].clientY-ev.touches[1].clientY;
+            iv.lastDist=Math.sqrt(dx*dx+dy*dy);
+          }
+        },{passive:false});
+        cv.addEventListener('touchmove',function(ev){
+          ev.preventDefault();
+          if(ev.touches.length===1&&iv.dragging){
+            var rect2=cv.getBoundingClientRect();
+            var scl=CW/rect2.width;
+            iv.panX+=(ev.touches[0].clientX-iv.lastX)*scl;
+            iv.panY+=(ev.touches[0].clientY-iv.lastY)*scl;
+            iv.lastX=ev.touches[0].clientX; iv.lastY=ev.touches[0].clientY;
+          } else if(ev.touches.length===2){
+            var dx2=ev.touches[0].clientX-ev.touches[1].clientX;
+            var dy2=ev.touches[0].clientY-ev.touches[1].clientY;
+            var dist=Math.sqrt(dx2*dx2+dy2*dy2);
+            if(iv.lastDist>0){
+              var ratio=dist/iv.lastDist;
+              iv.zoom=Math.max(0.3,Math.min(8,iv.zoom*ratio));
+            }
+            iv.lastDist=dist;
+          }
+        },{passive:false});
+        cv.addEventListener('touchend',function(){iv.dragging=false;iv.lastDist=0;});
+        cv.style.cursor='grab';
+      }
+
+      var iv=cv._inv;
+
+      // ── base square coordinates ────────────────────────────────────────────
+      var BASE=CH;            // square side in canvas pixels (before zoom)
+      var IOX0=BASE/2, IOY0=BASE/2, ISC0=BASE/6;
+
+      // Apply pan+zoom: origin and scale in actual canvas coords
+      var ISC=ISC0*iv.zoom;
+      var IOX=IOX0+iv.panX;
+      var IOY=IOY0+iv.panY;
+
+      // ── clear & background ────────────────────────────────────────────────
+      cx2.fillStyle='#07071a'; cx2.fillRect(0,0,CW,CH);
+
+      // ── grid lines (light) ────────────────────────────────────────────────
+      cx2.strokeStyle='#141430'; cx2.lineWidth=0.5;
+      var step=ISC; var xStart=((0-IOX)%step+step)%step;
+      for(var gx=xStart;gx<CW;gx+=step){cx2.beginPath();cx2.moveTo(gx,0);cx2.lineTo(gx,CH);cx2.stroke();}
+      var yStart=((0-IOY)%step+step)%step;
+      for(var gy=yStart;gy<CH;gy+=step){cx2.beginPath();cx2.moveTo(0,gy);cx2.lineTo(CW,gy);cx2.stroke();}
+
+      // ── axes ──────────────────────────────────────────────────────────────
+      cx2.strokeStyle='#2a3a66'; cx2.lineWidth=1.5;
+      cx2.beginPath();cx2.moveTo(0,IOY);cx2.lineTo(CW,IOY);cx2.stroke();
+      cx2.beginPath();cx2.moveTo(IOX,0);cx2.lineTo(IOX,CH);cx2.stroke();
+
+      // axis tick labels
+      cx2.fillStyle='#4a5590'; cx2.font='8px Courier New'; cx2.textAlign='center';
+      var tickInterval=1; if(ISC<20)tickInterval=2; if(ISC<10)tickInterval=5;
+      var xMin2=Math.ceil((-IOX)/ISC), xMax2=Math.floor((CW-IOX)/ISC);
+      var yMin2=Math.ceil((IOY-CH)/ISC), yMax2=Math.floor(IOY/ISC);
+      for(var ii=xMin2;ii<=xMax2;ii+=tickInterval){
+        if(ii===0)continue;
+        var px2=IOX+ii*ISC;
+        if(px2>15&&px2<CW-15){
+          cx2.beginPath();cx2.moveTo(px2,IOY-3);cx2.lineTo(px2,IOY+3);cx2.stroke();
+          if(ISC>14)cx2.fillText(ii,px2,IOY+12);
+        }
+      }
+      cx2.textAlign='right';
+      for(var jj=yMin2;jj<=yMax2;jj+=tickInterval){
+        if(jj===0)continue;
+        var py3=IOY-jj*ISC;
+        if(py3>12&&py3<CH-4){
+          cx2.beginPath();cx2.moveTo(IOX-3,py3);cx2.lineTo(IOX+3,py3);cx2.stroke();
+          if(ISC>14)cx2.fillText(jj,IOX-5,py3+3);
+        }
+      }
+      cx2.textAlign='left'; cx2.fillStyle='#4455aa'; cx2.font='bold 9px Courier New';
+      if(IOX>4&&IOX<CW-4)cx2.fillText('y',IOX+4,12);
+      if(IOY>4&&IOY<CH-4){cx2.textAlign='center';cx2.fillText('x',CW-8,IOY-4);}
+
+      // ── y = x symmetry line ───────────────────────────────────────────────
+      cx2.strokeStyle='#ffcc44'; cx2.lineWidth=1.2; cx2.setLineDash([5,4]);
+      // y=x in canvas: canvasY = IOY - xv*ISC, canvasX = IOX + xv*ISC
+      // so canvasY = IOY - (canvasX - IOX) => canvasY = -canvasX + IOX + IOY
+      var yx1=Math.max(0,IOX+IOY-CH), yx2=Math.min(CW,IOX+IOY);
+      cx2.beginPath();cx2.moveTo(yx1,IOX+IOY-yx1);cx2.lineTo(yx2,IOX+IOY-yx2);cx2.stroke();
+      cx2.setLineDash([]);
+      cx2.fillStyle='#ffcc4499'; cx2.font='bold 8px Courier New'; cx2.textAlign='left';
+      if(yx2>40)cx2.fillText('y = x',yx2-36,IOX+IOY-yx2+10);
+
+      var prog=Math.min(1,t/120);
+
+      // ── plot f ────────────────────────────────────────────────────────────
+      function plotSqV(col,alpha){
+        cx2.strokeStyle=col+(alpha<1?Math.round(alpha*255).toString(16).padStart(2,'0'):'');
+        cx2.lineWidth=2.2; cx2.beginPath(); var st=false;
+        for(var px=0;px<CW;px++){
+          var xv=(px-IOX)/ISC;
+          var raw=evalFuncRaw(e.type,e.cfg,xv);
+          if(raw===null||!isFinite(raw)||Math.abs(raw)>30){st=false;continue;}
+          var ppy=IOY-raw*ISC;
+          if(ppy<-40||ppy>CH+40){st=false;continue;}
+          if(!st){cx2.moveTo(px,ppy);st=true;}else cx2.lineTo(px,ppy);
+        }
+        cx2.stroke();
+      }
+
+      // ── Analytic inverse evaluator ────────────────────────────────────────
+      // Returns f^-1(yv) analytically when possible, else null (use bisection)
+      function analyticalInverse(yv){
+        var cfg2=e.cfg;
+        switch(e.type){
+          case 'linear':
+            // f(x)=ax+b  =>  f^-1(y)=(y-b)/a
+            if(cfg2.a===0) return null;
+            return (yv-(cfg2.b||0))/cfg2.a;
+          case 'sqrt':
+            // f(x)=sqrt(x+off)  =>  f^-1(y)=y^2-off,  y>=0
+            if(yv<0) return null;
+            return yv*yv-(cfg2.off||0);
+          case 'rational':
+            // f(x)=k/x  =>  f^-1(y)=k/y
+            if(yv===0) return null;
+            return (cfg2.k||4)/yv;
+          case 'exp':
+            // f(x)=base^(s*x)  =>  f^-1(y)=log_base(y)/s
+            if(yv<=0) return null;
+            var s=cfg2.s||0.4;
+            var b2=cfg2.base||2;
+            return Math.log(yv)/(Math.log(b2)*s);
+          case 'log':
+            // f(x)=ln(x+off)  =>  f^-1(y)=e^y - off
+            return Math.exp(yv)-(cfg2.off||10);
+          case 'tan':
+            // f(x)=tan(x/p)  =>  f^-1(y)=p*arctan(y)
+            return (cfg2.p||4)*Math.atan(yv);
+          // Derivatives — same types mapped
+          case 'dlin':
+            return null; // constant, no inverse
+          case 'dquad':
+            // f'(x)=2ax+b  =>  linear
+            if(2*(cfg2.a||1)===0) return null;
+            return (yv-(cfg2.b||0))/(2*(cfg2.a||1));
+          case 'dlog':
+            // f'(x)=1/(x+off)  =>  f'^-1(y)=1/y - off
+            if(yv===0) return null;
+            return 1/yv-(cfg2.off||10);
+          case 'dexp':
+            // f'(x)=ln(base)*base^(sx)  =>  solve analytically
+            var lb=Math.log(cfg2.base||2), ss=cfg2.s||0.4;
+            if(yv<=0||lb<=0) return null;
+            return Math.log(yv/lb)/(lb*ss);
+          case 'dsqrt':
+            // f'(x)=1/(2*sqrt(x+off))  =>  f'^-1(y)=1/(4y^2)-off
+            if(yv<=0) return null;
+            return 1/(4*yv*yv)-(cfg2.off||0);
+          default:
+            return null; // use bisection
+        }
+      }
+
+      // ── Bisection inverse for non-analytic cases ──────────────────────────
+      function bisectionInverse(yv, xLo, xHi, iters){
+        var fLo=evalFuncRaw(e.type,e.cfg,xLo);
+        var fHi=evalFuncRaw(e.type,e.cfg,xHi);
+        if(fLo===null||fHi===null) return null;
+        if((fLo-yv)*(fHi-yv)>0) return null; // no sign change
+        for(var i=0;i<iters;i++){
+          var xMid=(xLo+xHi)*0.5;
+          var fMid=evalFuncRaw(e.type,e.cfg,xMid);
+          if(fMid===null) return null;
+          if((fLo-yv)*(fMid-yv)<=0){ xHi=xMid; fHi=fMid; }
+          else { xLo=xMid; fLo=fMid; }
+        }
+        return (xLo+xHi)*0.5;
+      }
+
+      // ── Plot f^-1 correctly: iterate over canvas x, compute y=f^-1(x) ────
+      // This is f^-1 graphed as a function of x (the input axis),
+      // meaning: for each canvas column px, find xv=canvasX->mathX,
+      // compute inv_y = f^-1(xv), then plot at canvasY = IOY - inv_y*ISC
+      function plotInvSqV(col,alpha){
+        cx2.strokeStyle=col+(alpha<1?Math.round(alpha*255).toString(16).padStart(2,'0'):'');
+        cx2.lineWidth=2.2; cx2.setLineDash([]);
+
+        // Determine search range for bisection (visible x range in math coords)
+        var mathXlo=(-IOX)/ISC, mathXhi=(CW-IOX)/ISC;
+
+        // For each x-value on screen (which is the INPUT to f^-1),
+        // compute f^-1(x) analytically or via bisection
+        cx2.beginPath(); var st=false;
+        for(var px=0;px<CW;px++){
+          if(prog<1&&px/CW>prog){break;} // animate drawing
+
+          var xInput=(px-IOX)/ISC; // this is the argument to f^-1
+
+          var yResult=analyticalInverse(xInput);
+
+          if(yResult===null){
+            // Bisection over the visible math domain
+            // Need monotone bracket — try multiple sub-intervals
+            var found2=false;
+            var segs2=8;
+            var lo2=mathXlo, hi2=mathXhi;
+            // Expand range a bit for safety
+            lo2=Math.min(lo2,-8); hi2=Math.max(hi2,8);
+            var segW=(hi2-lo2)/segs2;
+            for(var ss2=0;ss2<segs2;ss2++){
+              var a2=lo2+ss2*segW, b2=lo2+(ss2+1)*segW;
+              var r2=bisectionInverse(xInput,a2,b2,28);
+              if(r2!==null&&isFinite(r2)){
+                yResult=r2; found2=true; break;
+              }
+            }
+            if(!found2){st=false;continue;}
+          }
+
+          if(!isFinite(yResult)||Math.abs(yResult)>40){st=false;continue;}
+          var ppy2=IOY-yResult*ISC;
+          if(ppy2<-40||ppy2>CH+40){st=false;continue;}
+          if(!st){cx2.moveTo(px,ppy2);st=true;}else cx2.lineTo(px,ppy2);
+        }
+        cx2.stroke();
+      }
+
+      plotSqV(e.color,1);
+
+      // labels
+      cx2.font='bold 10px Courier New'; cx2.textAlign='left';
+      cx2.fillStyle=e.color; cx2.fillText('f',6,14);
+
+      if(d.inversa){
+        plotInvSqV('#ff88cc',prog);
+        cx2.fillStyle='#ff88cc'; cx2.fillText('f\u207b\u00b9',6,26);
+        // info strip on right if space
+        if(CW>BASE+60){
+          var RX=BASE+8;
+          txt(RX,16,'f\u207b\u00b9 = reflejo','#aac8ff',9,'left');
+          txt(RX,30,d.inversaDef?d.inversaDef.slice(0,22):'existe','#ffee88',9,'left');
+          txt(RX,46,'Simetria en y=x','#66ff88',9,'left');
+        }
+      } else {
+        plotInvSqV('#ff4455',prog*0.5);
+        cx2.fillStyle='#ff6644'; cx2.font='9px Courier New'; cx2.textAlign='center';
+        cx2.fillText('Reflejo no es funcion',IOX,CH-6);
+        if(CW>BASE+60){
+          var RX2=BASE+8;
+          txt(RX2,16,'Reflejo en y=x:','#aac8ff',9,'left');
+          txt(RX2,30,'2 valores y por x','#ff6644',9,'left');
+          txt(RX2,46,'No es funcion','#ff6644',9,'left');
+          txt(RX2,60,'Sin inversa global','#ff6644',9,'left');
+        }
+      }
+
+      // ── hint overlay ──────────────────────────────────────────────────────
+      cx2.fillStyle='rgba(10,10,30,0.72)'; cx2.fillRect(0,CH-16,CW,16);
+      cx2.fillStyle='#445577'; cx2.font='8px Courier New'; cx2.textAlign='center';
+      cx2.fillText('Arrastra para mover | Scroll / pinch para zoom',CW/2,CH-4);
+
+      t++; _af[pid]=requestAnimationFrame(proofs.inversa);
+    }
+  };
+
+  if(proofs[key]) _af[pid]=requestAnimationFrame(proofs[key]);
+  else panel.innerHTML='<span style="color:#aac8ff;font-size:11px;padding:6px;display:block">No disponible.</span>';
+}
+
+// FUNCTION EVALUATOR
+function evalFuncRaw(type, cfg, x){
+  switch(type){
+    case 'linear':    return cfg.a*x+(cfg.b||0);
+    case 'quadratic': return cfg.a*x*x+(cfg.b||0)*x+(cfg.c||0);
+    case 'cubic':     return x*x*x+(cfg.a||0)*x+(cfg.b||0);
+    case 'sqrt':      return x+(cfg.off||0)>=0?Math.sqrt(x+(cfg.off||0)):null;
+    case 'sin':       return (cfg.A||1)*Math.sin((cfg.w||1)*x+(cfg.phi||0));
+    case 'cos':       return (cfg.A||1)*Math.cos((cfg.w||1)*x+(cfg.phi||0));
+    case 'rational':  return Math.abs(x)<0.3?null:(cfg.k||4)/x;
+    case 'log':       return x+(cfg.off||10)>0?Math.log(x+(cfg.off||10)):null;
+    case 'exp':       return (cfg.base||2)**(x*(cfg.s||0.4));
+    case 'tan':{var tv=x/(cfg.p||4);return Math.abs(Math.cos(tv))<0.08?null:Math.tan(tv);}
+    case 'dlin':      return cfg.a||2;
+    case 'dquad':     return 2*(cfg.a||1)*x+(cfg.b||0);
+    case 'dcubic':    return 3*x*x+(cfg.a||0);
+    case 'dsqrt':     return x+(cfg.off||0)>0?1/(2*Math.sqrt(x+(cfg.off||0))):null;
+    case 'dsin':      return (cfg.A||1)*(cfg.w||1)*Math.cos((cfg.w||1)*x);
+    case 'dcos':      return -(cfg.A||1)*(cfg.w||1)*Math.sin((cfg.w||1)*x);
+    case 'drational': return -(cfg.k||4)/(x*x+0.001);
+    case 'dlog':      return x+(cfg.off||10)>0?1/(x+(cfg.off||10)):null;
+    case 'dexp':      return Math.log(cfg.base||2)*(cfg.base||2)**(x*(cfg.s||0.4))*(cfg.s||0.4);
+    case 'dtan':{var tv2=x/(cfg.p||4);return Math.abs(Math.cos(tv2))<0.08?null:1/((cfg.p||4)*Math.cos(tv2)*Math.cos(tv2));}
+    // Integral types reuse base function shapes
+    case 'iquad':     return (cfg.a||1)/2*x*x+(cfg.b||0)*x;
+    case 'icubic':    return (cfg.a||1)/3*x*x*x+(cfg.b||0)/2*x*x+(cfg.c||0)*x;
+    case 'isin':      return -(cfg.A||1)/(cfg.w||1)*Math.cos((cfg.w||1)*x);
+    case 'icos':      return (cfg.A||1)/(cfg.w||1)*Math.sin((cfg.w||1)*x);
+    case 'iexp':      return (cfg.base||2)**(x*(cfg.s||1));
+    case 'ilog':      return x>0?x*(Math.log(x)-1):null;
+    default: return 0;
+  }
+}
+
+function evalFunc(type, cfg, cx){
+  var x=(cx-MID_X)*0.55;
+  return evalFuncRaw(type, cfg, x);
+}
+
+function buildPath(cfg){
+  var segs=[];
+  for(var cx=2;cx<COLS-2;cx++){
+    var raw=evalFunc(cfg.type, cfg, cx);
+    if(raw===null||!isFinite(raw)||Math.abs(raw)>30)continue;
+    var cy=MID_Y-Math.round(raw*1.5);
+    if(cy>=1&&cy<ROWS-1) segs.push({x:cx,y:cy});
+  }
+  if(segs.length<5){segs=[];for(var cx2=4;cx2<COLS-4;cx2++)segs.push({x:cx2,y:MID_Y});}
+  return segs;
+}
+
+function pick(arr){return arr[Math.floor(Math.random()*arr.length)];}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+
+// FUNCTION POOLS
+function mkMathDef(dom,rec,inj,sob,biy,inv,def,prop,invDef,apps){
+  return{dominio:dom,recorrido:rec,inyectiva:inj,sobreyectiva:sob,biyectiva:biy,inversa:inv,definicion:def,propiedades:prop,inversaDef:invDef,apps:apps};
+}
+
+var FUNCTION_POOLS=[
+  function(){
+    var a=pick([1,2,3,-1,-2,0.5]),b=pick([0,1,-1,2,-2,3]);
+    var bstr=b>0?' + '+b:b<0?' - '+Math.abs(b):'';
+    var esL=b===0;
+    return{name:esL?'La Lineal':'La Afin',fx:'f(x) = '+a+'x'+bstr,type:'linear',cfg:{a:a,b:b},
+      color:'#44aaff',hp:60,dmg:8,speed:190,
+      mathDef:mkMathDef('R','R',true,true,true,true,
+        'f: R -> R, f(x) = '+a+'x'+bstr+'. '+(esL?'Lineal: pasa por origen.':'Afin: NO pasa por origen, b='+b+'!=0.'),
+        (esL?'f(Lx)=Lf(x) linealidad OK. ':'Afin: f(Lx)!=Lf(x) si b!=0. ')+'Pendiente m='+a+'. '+(esL?'Pasa por (0,0).':'Corta y en (0,'+b+').'),
+        'f^-1(y) = (y - '+b+') / '+a,
+        esL?'Proporcionalidad directa, Hooke F=kx, conversion sin offset.':'Cinematica x=vt+x0, costos con costo fijo, conversion grados.')};
+  },
+  function(){
+    var a=pick([0.5,1,1.5,2]),h=pick([0,1,-1,2,-2]),k=pick([0,-1,-2,-3,1]);
+    var hstr=h>0?' - '+h:h<0?' + '+Math.abs(h):'';
+    var kstr=k>0?' + '+k:k<0?' - '+Math.abs(k):'';
+    return{name:'La Parabolera',fx:'f(x) = '+a+'(x'+hstr+')^2'+kstr,type:'quadratic',cfg:{a:a,b:-2*a*h,c:a*h*h+k},
+      color:'#ff8844',hp:90,dmg:12,speed:170,
+      mathDef:mkMathDef('R','['+k+', +inf)',false,false,false,false,
+        'f: R -> ['+k+',+inf), f(x) = '+a+'(x'+hstr+')^2'+kstr+'. Parabola vertice ('+h+','+k+').',
+        'Abre arriba (a='+a+'>0). Eje simetria x='+h+'. Minimo f('+h+')='+k+'. No inyectiva: f('+h+'+t)=f('+h+'-t).',
+        'No admite inversa global. Si en x>='+h+' o x<='+h+'.',
+        'Tiro parabolico, area de figuras, optimizacion cuadratica.')};
+  },
+  function(){
+    var a=pick([-0.5,-1,-1.5]),k=pick([1,2,3,4]);
+    return{name:'La Concava',fx:'f(x) = '+a+'x^2 + '+k,type:'quadratic',cfg:{a:a,b:0,c:k},
+      color:'#ff4488',hp:70,dmg:10,speed:175,
+      mathDef:mkMathDef('R','(-inf, '+k+']',false,false,false,false,
+        'f: R -> (-inf,'+k+'], f(x) = '+a+'x^2 + '+k+'. Parabola vertice (0,'+k+').',
+        'Abre abajo (a='+a+'<0). Maximo en x=0: f(0)='+k+'. Raices en x=+-raiz('+k+'/|a|).',
+        'No admite inversa global. Si restringida a x>=0 o x<=0.',
+        'Altura maxima proyectiles, maximizacion beneficio, arcos estructurales.')};
+  },
+  function(){
+    var a=pick([-3,-2,0,2,3]);
+    var astr=a>0?' + '+a+'x':a<0?' - '+Math.abs(a)+'x':'';
+    return{name:'El Cubico',fx:'f(x) = x^3'+astr,type:'cubic',cfg:{a:a,b:0},
+      color:'#aa44ff',hp:120,dmg:15,speed:155,
+      mathDef:mkMathDef('R','R',a===0,true,a===0,a===0,
+        'f: R -> R, f(x) = x^3'+astr+'. Polinomica grado 3.',
+        (a===0?'Inyectiva, biyectiva.':'Extremos locales, no inyectiva.')+(a<0?' Max en x='+Math.sqrt(-a/3).toFixed(2)+'.':'')+' Inflexion en x=0.',
+        a===0?'f^-1(y) = cubraiz(y)':'No admite inversa global.',
+        'Volumenes, flujo en tuberias, modelos de crecimiento con inflexion.')};
+  },
+  function(){
+    var off=pick([0,2,4,6,8]);
+    return{name:'La Radical',fx:'f(x) = raiz(x + '+off+')',type:'sqrt',cfg:{off:off},
+      color:'#44ffbb',hp:80,dmg:11,speed:165,
+      mathDef:mkMathDef('['+(-off)+', +inf)','[0, +inf)',true,false,false,true,
+        'f: ['+(-off)+',+inf) -> [0,+inf), f(x)=raiz(x+'+off+'). Rama positiva funcion cuadratica.',
+        'Estrictamente creciente. No diferenciable en x='+(-off)+'. Concavidad negativa.',
+        'f^-1(y) = y^2 - '+off+', para y >= 0.',
+        'Velocidad de ondas, desviacion estandar, crecimiento biologico.')};
+  },
+  function(){
+    var A=pick([1,1.5,2]),w=pick([0.5,1,1.5,2]);
+    var p=(2*Math.PI/w).toFixed(2);
+    return{name:'La Sinuosa',fx:'f(x) = '+A+'*sin('+w+'x)',type:'sin',cfg:{A:A,w:w},
+      color:'#ffee44',hp:140,dmg:18,speed:140,
+      mathDef:mkMathDef('R','['+(-A)+', '+A+']',false,false,false,false,
+        'f: R -> ['+(-A)+','+A+'], f(x)='+A+'*sin('+w+'x). Periodica y acotada.',
+        'Periodo T=2*pi/'+w+'='+p+'. Amplitud '+A+'. Impar: f(-x)=-f(x). Ceros en x=k*pi/'+w+'.',
+        'No admite inversa global. Si en x en [-pi/(2w), pi/(2w)].',
+        'Ondas sonoras, corriente alterna, MAS, senales RF.')};
+  },
+  function(){
+    var A=pick([1,1.5,2]),w=pick([0.5,1,1.5,2]);
+    return{name:'La Cosena',fx:'f(x) = '+A+'*cos('+w+'x)',type:'cos',cfg:{A:A,w:w},
+      color:'#44eeff',hp:130,dmg:16,speed:145,
+      mathDef:mkMathDef('R','['+(-A)+', '+A+']',false,false,false,false,
+        'f: R -> ['+(-A)+','+A+'], f(x)='+A+'*cos('+w+'x). Periodica par y acotada.',
+        'Periodo T=2*pi/'+w+'. Par: f(-x)=f(x). Max en x=0: f(0)='+A+'. Min en x=pi/'+w+'.',
+        'No admite inversa global. Si en [0, pi/w].',
+        'Interferencia de ondas, astronomia, circuitos RLC.')};
+  },
+  function(){
+    var k=pick([2,3,4,6]);
+    return{name:'La Hiperbola',fx:'f(x) = '+k+'/x',type:'rational',cfg:{k:k},
+      color:'#ff6688',hp:160,dmg:22,speed:132,
+      mathDef:mkMathDef('R \\ {0}','R \\ {0}',true,false,false,true,
+        'f: R\\{0} -> R\\{0}, f(x)='+k+'/x. Racional grado -1.',
+        'Asintotas: vertical x=0 y horizontal y=0. Impar: f(-x)=-f(x). Decreciente en cada rama.',
+        'f^-1(y) = '+k+'/y (es su propia inversa, involucion).',
+        'Ley de Ohm (I=V/R), ley de Boyle (PV=cte), demanda elastica.')};
+  },
+  function(){
+    var base=pick([2,3,Math.E]);
+    var bname=base===Math.E?'e':''+base;
+    return{name:'La Exponente',fx:'f(x) = '+bname+'^x',type:'exp',cfg:{base:base,s:0.4},
+      color:'#ffaa22',hp:180,dmg:25,speed:125,
+      mathDef:mkMathDef('R','(0, +inf)',true,false,false,true,
+        'f: R -> (0,+inf), f(x)='+bname+'^x. Base '+bname+'>1, estrictamente creciente.',
+        'Asintota horizontal y=0 (x->-inf). f(0)=1. Crecimiento superlineal. f\'(x)=ln('+bname+')*f(x).',
+        'f^-1(y) = log_'+bname+'(y) = ln(y)/ln('+bname+').',
+        'Interes compuesto, crecimiento poblacional, desintegracion radiactiva.')};
+  },
+  function(){
+    var off=pick([5,8,10,12]);
+    return{name:'El Logaritmo',fx:'f(x) = ln(x + '+off+')',type:'log',cfg:{off:off},
+      color:'#88ff44',hp:200,dmg:28,speed:120,
+      mathDef:mkMathDef('('+(-off)+', +inf)','R',true,true,true,true,
+        'f: ('+(-off)+',+inf) -> R, f(x)=ln(x+'+off+'). Log natural con traslacion horizontal.',
+        'Estrictamente creciente y concava. f\'(x)=1/(x+'+off+'). Cruce x-axis en x='+(1-off)+'.',
+        'f^-1(y) = e^y - '+off+'.',
+        'Escala Richter, decibelios, pH, entropia, complejidad O(log n).')};
+  },
+  function(){
+    var p=pick([2,3,4]);
+    return{name:'La Tangente',fx:'f(x) = tan(x/'+p+')',type:'tan',cfg:{p:p},
+      color:'#ff44cc',hp:220,dmg:30,speed:115,
+      mathDef:mkMathDef('R \\ {asintotas}','R',true,true,true,true,
+        'f: Dom -> R, f(x)=tan(x/'+p+'). Cociente sin/cos, periodo '+p+'*pi.',
+        'Periodo T='+p+'*pi. Impar. Asintotas verticales en x='+p+'*pi/2+k*'+p+'*pi. Creciente estricta.',
+        'f^-1(y) = '+p+'*arctan(y), rango (-'+p+'*pi/2, '+p+'*pi/2).',
+        'Topografia, angulos de elevacion, circuitos CA, Fourier.')};
+  }
+];
+
+var DERIV_POOLS=[
+  function(){
+    var a=pick([1,2,3,-1,-2]);
+    return{name:'D/Lineal.Afin',fx:"f'(x) = "+a+' (constante)',type:'dlin',cfg:{a:a},
+      color:'#88ffcc',hp:80,dmg:10,speed:185,
+      mathDef:mkMathDef('R','{'+a+'}',false,false,false,false,
+        "f'(x) = "+a+'. Derivada de f(x)='+a+'x+b. Funcion constante.',
+        'Pendiente nula. La constante b desaparece: ('+a+'x+b)\'='+a+'. Rec={'+a+'} un solo punto.',
+        'No admite inversa (no inyectiva).',
+        'Velocidad constante MRU, tasa de cambio uniforme, pendiente de recta.')};
+  },
+  function(){
+    var a=pick([1,2,-1,-2,0.5]),b=pick([0,1,-1,2]);
+    return{name:'D/Cuadratica',fx:"f'(x) = "+2*a+'x + '+b,type:'dquad',cfg:{a:a,b:b},
+      color:'#ffaa88',hp:100,dmg:13,speed:165,
+      mathDef:mkMathDef('R','R',true,true,true,true,
+        "f'(x) = "+2*a+'x + '+b+'. Derivada de f(x)='+a+'x^2+'+b+'x+c.',
+        'Funcion lineal. Cero en x='+(-b/(2*a)).toFixed(2)+' (extremo de la original).',
+        "f'^-1(y) = (y - "+b+') / '+(2*a),
+        'Punto critico de parabolas, analisis marginal, optimizacion.')};
+  },
+  function(){
+    var a=pick([-3,-2,0,2,3]);
+    var astr=a>0?' + '+a:a<0?' - '+Math.abs(a):'';
+    return{name:'D/Cubica',fx:"f'(x) = 3x^2"+astr,type:'dcubic',cfg:{a:a},
+      color:'#cc88ff',hp:130,dmg:17,speed:150,
+      mathDef:mkMathDef('R',a<=0?'[0, +inf)':'R',a>0,false,false,false,
+        "f'(x) = 3x^2"+astr+'. Derivada de f(x)=x^3'+astr+'x.',
+        'Parabola concava arriba. '+(a<0?'Ceros en x=+-'+Math.sqrt(-a/3).toFixed(2)+'.':'Siempre >= 0.')+' Min en x=0.',
+        'No admite inversa global (parabola).',
+        'Extremos locales de cubicas, concavidad, analisis de inflexion.')};
+  },
+  function(){
+    var off=pick([0,2,4,6]);
+    return{name:'D/Raiz',fx:"f'(x) = 1/(2*raiz(x+"+off+'))',type:'dsqrt',cfg:{off:off},
+      color:'#88ffaa',hp:90,dmg:12,speed:160,
+      mathDef:mkMathDef('('+(-off)+', +inf)','(0, +inf)',true,false,false,true,
+        "f'(x) = 1/(2*raiz(x+"+off+')). Derivada de f(x)=raiz(x+'+off+').',
+        'Siempre positiva: raiz siempre crece. Decreciente: tasa se reduce. Asintota vertical x='+(-off)+'.',
+        "f'^-1(y) = 1/(4y^2) - "+off,
+        'Tasa de crecimiento de raiz, concavidad, fisica de ondas.')};
+  },
+  function(){
+    var A=pick([1,1.5,2]),w=pick([0.5,1,1.5,2]);
+    return{name:'D/Seno -> Cos',fx:"f'(x) = "+A*w+'*cos('+w+'x)',type:'dsin',cfg:{A:A,w:w},
+      color:'#eeee44',hp:150,dmg:20,speed:135,
+      mathDef:mkMathDef('R','['+(-A*w)+', '+A*w+']',false,false,false,false,
+        "f'(x) = "+A*w+'*cos('+w+'x). Derivada de f(x)='+A+'*sin('+w+'x). La derivada del seno es el coseno!',
+        'Periodo T=2*pi/'+w+'. Amplitud '+A*w+'. Ceros donde seno alcanza extremos.',
+        'No admite inversa global.',
+        'Velocidad en MAS, espectral, circuitos AC.')};
+  },
+  function(){
+    var A=pick([1,1.5,2]),w=pick([0.5,1,1.5,2]);
+    return{name:'D/Coseno -> -Sen',fx:"f'(x) = -"+A*w+'*sin('+w+'x)',type:'dcos',cfg:{A:A,w:w},
+      color:'#44ddff',hp:140,dmg:18,speed:140,
+      mathDef:mkMathDef('R','['+(-A*w)+', '+A*w+']',false,false,false,false,
+        "f'(x) = -"+A*w+'*sin('+w+'x). Derivada de f(x)='+A+'*cos('+w+'x). Derivada del coseno es el -seno.',
+        'Periodo T=2*pi/'+w+'. Signo negativo: cuando coseno cae, derivada positiva. Impar.',
+        'No admite inversa global.',
+        'Aceleracion en MAS, derivacion en AC, fases.')};
+  },
+  function(){
+    var k=pick([2,3,4,6]);
+    return{name:'D/Hiperbola',fx:"f'(x) = -"+k+'/x^2',type:'drational',cfg:{k:k},
+      color:'#ff7799',hp:170,dmg:24,speed:128,
+      mathDef:mkMathDef('R \\ {0}','(-inf, 0)',false,false,false,false,
+        "f'(x) = -"+k+'/x^2. Derivada de f(x)='+k+'/x.',
+        'Siempre negativa: hiperbola siempre decreciente. Asintota x=0. Par: f\'(-x)=f\'(x).',
+        'No admite inversa (no inyectiva en R\\{0}).',
+        'Variacion de Boyle, optica diferencial, elasticidad.')};
+  },
+  function(){
+    var off=pick([5,8,10]);
+    return{name:'D/Logaritmo',fx:"f'(x) = 1/(x+"+off+')',type:'dlog',cfg:{off:off},
+      color:'#aaffaa',hp:210,dmg:29,speed:118,
+      mathDef:mkMathDef('('+(-off)+', +inf)','(0, +inf)',true,false,false,true,
+        "f'(x) = 1/(x+"+off+'). Derivada de f(x)=ln(x+'+off+').',
+        'Siempre positiva (ln siempre crece). Decreciente: tasa se reduce. Asintotas en x='+(-off)+' y y=0.',
+        "f'^-1(y) = 1/y - "+off,
+        'Shannon, rendimientos decrecientes, bioquimica.')};
+  },
+  function(){
+    var base=pick([2,3,Math.E]);
+    var bname=base===Math.E?'e':''+base;
+    return{name:'D/Exponencial',fx:"f'(x) = ln("+bname+")*"+bname+'^x',type:'dexp',cfg:{base:base,s:0.4},
+      color:'#ffbb33',hp:190,dmg:27,speed:122,
+      mathDef:mkMathDef('R','(0, +inf)',true,false,false,true,
+        "f'(x) = ln("+bname+')*'+bname+'^x. Derivada de f(x)='+bname+'^x. La exponencial casi es su propia derivada!',
+        'Proporcional a la original: f\'= ln('+bname+')*f. Para base=e: f\'(x)=e^x exactamente.',
+        "f'^-1(y) = log_"+bname+'(y/ln('+bname+'))',
+        'Crecimiento autocatalitico, interes continuo, ec. diferenciales.')};
+  },
+  function(){
+    var p=pick([2,3,4]);
+    return{name:'D/Tangente',fx:"f'(x) = 1/("+p+'*cos^2(x/'+p+'))',type:'dtan',cfg:{p:p},
+      color:'#ff88dd',hp:230,dmg:32,speed:112,
+      mathDef:mkMathDef('R \\ {asintotas}','[1/'+p+', +inf)',false,false,false,false,
+        "f'(x) = sec^2(x/"+p+')/'+p+'. Derivada de f(x)=tan(x/'+p+').',
+        'Siempre positiva (tan siempre crece en Dom). Min 1/'+p+' en x=0. Asintotas donde cos=0.',
+        'No admite inversa global.',
+        'Pendientes de tan, diseno de rampas, topografia diferencial.')};
+  }
+];
+
+var INTEGRAL_POOLS=[
+  function(){
+    var a=pick([1,2,3,-1,-2]),b=pick([0,1,-1,2,-2]);
+    var bstr=b>0?' + '+b:b<0?' - '+Math.abs(b):'';
+    var a2s=Number.isInteger(a/2)?''+(a/2):a+'/2';
+    return{name:'Integral Lineal',fx:'F(x) = '+a2s+'x^2'+bstr+'x + C',type:'quadratic',cfg:{a:a/2,b:b,c:0},
+      color:'#66ccff',hp:320,dmg:40,speed:108,
+      mathDef:mkMathDef('R','R',false,false,false,false,
+        'F(x) = integral('+a+'x'+bstr+')dx = '+a2s+'x^2'+bstr+'x + C.',
+        'Regla potencia: integral(x^n)dx=x^(n+1)/(n+1)+C. F\'(x)='+a+'x'+bstr+' OK. Familia de parabolas.',
+        'No aplica (antiderivada).',
+        'Posicion desde velocidad constante, area bajo recta, acumulacion lineal.')};
+  },
+  function(){
+    var a=pick([1,2,-1,3]),b=pick([0,1,-1,2]),c=pick([0,1,-1]);
+    var a3s=Number.isInteger(a/3)?''+(a/3):a+'/3';
+    var b2s=Number.isInteger(b/2)?''+(b/2):b+'/2';
+    var fxStr='F(x) = '+a3s+'x^3'+(b!==0?'+'+b2s+'x^2':'')+(c!==0?'+'+c+'x':'')+' + C';
+    return{name:'Integral Cuadratica',fx:fxStr,type:'cubic',cfg:{a:0,b:0},
+      color:'#ff9955',hp:350,dmg:44,speed:100,
+      mathDef:mkMathDef('R','R',false,true,false,false,
+        'F(x)=integral('+a+'x^2'+(b!==0?'+'+b+'x':'')+(c!==0?'+'+c:'')+')dx='+a3s+'x^3'+(b!==0?'+'+b2s+'x^2':'')+(c!==0?'+'+c+'x':'')+' + C.',
+        'F\'(x)='+a+'x^2'+(b!==0?'+'+b+'x':'')+(c!==0?'+'+c:'')+' OK. Cubica: dom=rec=R.',
+        'No aplica.',
+        'Area bajo parabola, trabajo de fuerza cuadratica, hidrostatica.')};
+  },
+  function(){
+    var A=pick([1,2,3]),w=pick([1,2,3]);
+    var Aw=A/w;
+    var Aws=Number.isInteger(Aw)?''+(Aw):A+'/'+w;
+    return{name:'Integral Seno',fx:'F(x) = -'+Aws+'*cos('+w+'x) + C',type:'cos',cfg:{A:-A/w,w:w},
+      color:'#ffdd55',hp:370,dmg:46,speed:96,
+      mathDef:mkMathDef('R','[-'+Math.abs(A/w).toFixed(2)+', '+Math.abs(A/w).toFixed(2)+']',false,false,false,false,
+        'F(x)=integral('+A+'*sin('+w+'x))dx = -('+A+'/'+w+')*cos('+w+'x) + C. Regla: integral(sin(wx))=-cos(wx)/w+C.',
+        "F'(x)=-("+A+'/'+w+')*(-'+w+')*sin('+w+'x)='+A+'*sin('+w+'x) OK. F periodica acotada.',
+        'No aplica.',
+        'Trabajo de fuerza oscilante, energia en MAS, electromagnetismo.')};
+  },
+  function(){
+    var A=pick([1,2,3]),w=pick([1,2,3]);
+    var Aw=A/w;
+    var Aws=Number.isInteger(Aw)?''+(Aw):A+'/'+w;
+    return{name:'Integral Coseno',fx:'F(x) = '+Aws+'*sin('+w+'x) + C',type:'sin',cfg:{A:A/w,w:w},
+      color:'#55eeff',hp:360,dmg:45,speed:98,
+      mathDef:mkMathDef('R','[-'+Math.abs(A/w).toFixed(2)+', '+Math.abs(A/w).toFixed(2)+']',false,false,false,false,
+        'F(x)=integral('+A+'*cos('+w+'x))dx=('+A+'/'+w+')*sin('+w+'x)+C. Regla: integral(cos(wx))=sin(wx)/w+C.',
+        "F'(x)=("+A+'/'+w+')*'+w+'*cos('+w+'x)='+A+'*cos('+w+'x) OK. F periodica.',
+        'No aplica.',
+        'Trabajo de fuerza sinusoidal, carga electrica AC, fases.')};
+  },
+  function(){
+    var base=pick([2,3,Math.E]);
+    var bname=base===Math.E?'e':''+base;
+    var lnbs=base===Math.E?'1':'ln('+bname+')';
+    return{name:'Integral Exponencial',fx:'F(x) = '+bname+'^x/'+lnbs+' + C',type:'exp',cfg:{base:base,s:1},
+      color:'#ffaa33',hp:400,dmg:50,speed:90,
+      mathDef:mkMathDef('R','(0,+inf)',true,false,false,true,
+        'F(x)=integral('+bname+'^x)dx = '+bname+'^x/ln('+bname+') + C. Para e: integral(e^x)=e^x+C (unica f=F=F\'!).',
+        "F'(x)="+bname+'^x/ln('+bname+')*ln('+bname+')='+bname+'^x OK. Siempre positiva, creciente.',
+        'No aplica (antiderivada).',
+        'Capital acumulado, desintegracion radiactiva, ec. diferenciales.')};
+  },
+  function(){
+    var k=pick([1,2,3,4]);
+    return{name:'Integral 1/x',fx:'F(x) = '+k+'*ln|x| + C',type:'log',cfg:{off:0,k:k},
+      color:'#aaff66',hp:420,dmg:52,speed:85,
+      mathDef:mkMathDef('R \\ {0}','R',true,true,true,true,
+        'F(x)=integral('+k+'/x)dx='+k+'*ln|x|+C. Formula clave: integral(1/x)dx=ln|x|+C (valida x!=0).',
+        "F'(x)="+k+'/x OK (para x>0 y x<0). ln|x| definido en R\\{0}. Dos ramas.',
+        'No aplica.',
+        'Entropia, ley de Fechner, tiempo de vaciado de tanque, termodinamica.')};
+  }
+];
+
+// LEVEL SYSTEM
+function buildLevel(poolIndices, phase){
+  return poolIndices.map(function(i){
+    var pool = phase==='func'?FUNCTION_POOLS:DERIV_POOLS;
+    var cfg=pool[i]();
+    cfg.id='e_'+Math.random().toString(36).slice(2,8);
+    return cfg;
+  });
+}
+
+function buildLevelInteg(poolIndices){
+  return poolIndices.map(function(i){
+    var cfg=INTEGRAL_POOLS[i]();
+    cfg.id='e_'+Math.random().toString(36).slice(2,8);
+    return cfg;
+  });
+}
+
+var FUNC_TPL=[[0],[1,2],[3,4],[5,6],[7,8],[9,10]];
+var DERIV_TPL=[[0],[1,2],[3,4],[5,6],[7,8],[8,9]];
+var INTEG_TPL=[[0],[1],[2,3],[4],[5],[0,1,2,3,4,5]];
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// EDO SYSTEM — Ecuaciones Diferenciales Ordinarias (Nivel 19+)
+// Estructura: cada EDO tiene curvas-solución como serpientes minions (fáciles)
+//             + la solución general como JEFE (mucha vida, flota con math)
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── Evaluador de soluciones de EDO ─────────────────────────────────────────
+function evalEDOSolution(edoType, cfg, t, C){
+  switch(edoType){
+    // Newton: T(t) = Ta + (T0-Ta)*e^(-k*t), curvas para distintos C=(T0-Ta)
+    case 'newton':
+      return cfg.Ta + C * Math.exp(-cfg.k * t);
+    // Crecimiento logístico: P(t) = K/(1 + ((K-P0)/P0)*e^(-r*t))
+    case 'logistic':
+      return cfg.K / (1 + C * Math.exp(-cfg.r * t));
+    // Caida libre con resistencia: v(t) = mg/b + C*e^(-b/m * t)
+    case 'falllib':
+      return cfg.vt + C * Math.exp(-cfg.bm * t);
+    // Circuito RC: q(t) = CE + C*e^(-t/(RC))
+    case 'rc':
+      return cfg.qinf + C * Math.exp(-cfg.tau * t);
+    default: return 0;
+  }
+}
+
+// ── Construir path de curva-solución en el canvas del juego ───────────────
+function buildEDOPath(edoType, cfg, C){
+  var segs=[];
+  // Mapeamos t en [tMin, tMax] -> columnas del canvas
+  var tMin=cfg.tMin||0, tMax=cfg.tMax||10;
+  for(var cx=2;cx<COLS-2;cx++){
+    var t=(cx/COLS)*(tMax-tMin)+tMin;
+    var raw=evalEDOSolution(edoType,cfg,t,C);
+    if(raw===null||!isFinite(raw))continue;
+    // Escalar: centrar en MID_Y, 1 unidad del dominio = escale px
+    var scaled=(raw-cfg.yCenter)*cfg.yScale;
+    var cy=MID_Y-Math.round(scaled);
+    if(cy>=1&&cy<ROWS-1) segs.push({x:cx,y:cy});
+  }
+  if(segs.length<5) return null;
+  return segs;
+}
+
+// ── Datos de las EDOs ────────────────────────────────────────────────────
+var EDO_POOL=[
+
+  // ── EDO 1: Ley de Enfriamiento de Newton  dT/dt = -k(T - Ta) ────────────
+  function(){
+    var k=pick([0.05,0.08,0.1,0.12]);
+    var Ta=pick([20,22,25]);   // temperatura ambiente
+    // Curvas minion: distintas cond. iniciales T0
+    var curves=[
+      {C:60,color:'#ff8844',name:'Curva T0='+(Ta+60)},  // T0=Ta+60
+      {C:40,color:'#ffcc44',name:'Curva T0='+(Ta+40)},
+      {C:-20,color:'#44aaff',name:'Curva T0='+(Ta-20)}, // objeto frio
+      {C:-40,color:'#88ccff',name:'Curva T0='+(Ta-40)},
+    ];
+    var cfg={
+      k:k, Ta:Ta,
+      tMin:0, tMax:12,
+      yCenter:Ta, yScale:2.2,
+    };
+    // Jefe = solución general T(t)=Ta + C·e^(-kt)
+    var boss={
+      isEDO:true, isBoss:true,
+      edoType:'newton', cfg:cfg,
+      name:'SOL. GENERAL',
+      fx:'T(t) = '+Ta+' + C·e^(-'+k+'t)',
+      math1:'dT/dt = -'+k+'(T - '+Ta+')',
+      math2:'T(t) = '+Ta+' + C·e^{\u2212'+k+'t}',
+      color:'#ff44ff',
+      hp:600, maxHp:600, dmg:18, speed:220,
+      // path: asintota horizontal en Ta -> serpiente se mueve a lo largo de la asintota
+      path:buildAsintotaPath(Ta, cfg),
+      // visual: jefe flota y pulsa
+      id:'boss_newton_'+Math.random().toString(36).slice(2,6),
+      edoDef:{
+        ecuacion:'dT/dt = \u2212k(T \u2212 T\u2090)',
+        tipo:'EDO de 1.er orden, lineal, separable',
+        solucionGeneral:'T(t) = T\u2090 + C\u00b7e^(\u2212kt)',
+        condInicial:'Con T(0)=T\u2080: C = T\u2080 \u2212 T\u2090',
+        solucionParticular:'T(t) = T\u2090 + (T\u2080\u2212T\u2090)\u00b7e^(\u2212kt)',
+        existUnic:'Teorema Picard: f(t,T)=\u2212k(T\u2212T\u2090) continua y Lipschitz en T => soluc. unica para todo PVI.',
+        derivacion:[
+          'dT/dt = \u2212k(T \u2212 T\u2090)',
+          'Separar variables:  dT/(T\u2212T\u2090) = \u2212k dt',
+          'Integrar ambos lados:',
+          '  \u222b dT/(T\u2212T\u2090) = \u222b \u2212k dt',
+          '  ln|T\u2212T\u2090| = \u2212kt + C\u2081',
+          '  |T\u2212T\u2090| = e^(C\u2081) \u00b7 e^(\u2212kt)',
+          '  T\u2212T\u2090 = C \u00b7 e^(\u2212kt)   (C \u2208 \u211d)',
+          '  T(t) = T\u2090 + C\u00b7e^(\u2212kt)  \u2713'
+        ],
+        aplicacion:{
+          titulo:'Ley de Enfriamiento de Newton',
+          descripcion:'Un objeto a '+( Ta+60)+'°C se deja enfriar en una habitacion a '+Ta+'°C. Con k='+k+' min\u207b\u00b9, encontrar T a los 10 min.',
+          pasos:[
+            'Datos: T\u2090='+Ta+'°C, T\u2080='+(Ta+60)+'°C, k='+k,
+            'C = T\u2080 \u2212 T\u2090 = '+(Ta+60)+' \u2212 '+Ta+' = 60°C',
+            'T(10) = '+Ta+' + 60\u00b7e^(\u2212'+k+'\u00d710)',
+            'T(10) = '+Ta+' + 60\u00b7e^(\u2212'+(k*10).toFixed(2)+')',
+            'T(10) \u2248 '+Ta+' + 60\u00b7'+(Math.exp(-k*10)).toFixed(4),
+            'T(10) \u2248 '+(Ta+60*Math.exp(-k*10)).toFixed(2)+'°C',
+          ],
+          k:k, Ta:Ta, T0:Ta+60, tMax:15
+        }
+      }
+    };
+    // Build minion enemies (curvas solución)
+    var minions=curves.map(function(cv){
+      var path=buildEDOPath('newton',cfg,cv.C);
+      if(!path)path=buildFlatPath(MID_Y);
+      return{
+        isEDO:true, isBoss:false,
+        edoType:'newton', cfg:cfg, C:cv.C,
+        name:cv.name,
+        fx:'T(t)='+Ta+(cv.C>=0?'+':'')+cv.C+'e^(-'+k+'t)',
+        color:cv.color,
+        hp:50, maxHp:50, dmg:6, speed:160,
+        path:path,
+        id:'minion_'+Math.random().toString(36).slice(2,6),
+        edoDef:null  // minions no tienen card completa
+      };
+    });
+    return{name:'Nivel 19 - EDO: Newton Cooling',phase:'edo',boss:boss,minions:minions,edoType:'newton',cfg:cfg};
+  }
+
+  // Aqui se pueden agregar mas EDOs en el futuro
+];
+
+function buildAsintotaPath(yVal, cfg){
+  // Jefe se mueve a lo largo de la asintota horizontal (temperatura ambiente)
+  var segs=[];
+  for(var cx=2;cx<COLS-2;cx++){
+    var scaled=(yVal - cfg.yCenter)*cfg.yScale;
+    var cy=MID_Y-Math.round(scaled);
+    if(cy<1)cy=1; if(cy>ROWS-2)cy=ROWS-2;
+    segs.push({x:cx,y:cy});
+  }
+  return segs;
+}
+
+function buildFlatPath(row){
+  var segs=[];
+  for(var cx=4;cx<COLS-4;cx++) segs.push({x:cx,y:row});
+  return segs;
+}
+
+// ── Construir nivel EDO ──────────────────────────────────────────────────
+function buildEDOLevel(idx){
+  var gen=EDO_POOL[idx%EDO_POOL.length];
+  var lvlData=gen();
+
+  // Inicializar boss como enemy object
+  var boss=lvlData.boss;
+  boss.segments=buildEDOSegments(boss.path, 14);
+  boss.pathIdx=Math.floor(boss.path.length*0.5);
+  boss.pathDir=1; boss.moveTimer=0;
+  boss.shootTimer=0;
+  boss.shootInterval=1800;
+  boss.shootCount=4;
+  boss.bullets=999;
+  boss.dead=false; boss.grow=0;
+
+  // Minions
+  var minions=lvlData.minions.map(function(m,i){
+    var path=m.path||buildFlatPath(MID_Y);
+    var si=Math.floor(path.length*(0.2+i*0.2));
+    if(si>=path.length)si=0;
+    m.segments=buildEDOSegments(path, 7);
+    m.pathIdx=si; m.pathDir=1; m.moveTimer=0;
+    m.shootTimer=Math.random()*3000;
+    m.shootInterval=3500+Math.random()*2000;
+    m.shootCount=1; m.bullets=999; m.dead=false; m.grow=0;
+    return m;
+  });
+
+  // All enemies = minions first, boss last (so HUD shows boss last)
+  return{
+    name:lvlData.name, phase:'edo',
+    edoType:lvlData.edoType, cfg:lvlData.cfg,
+    enemies:minions.concat([boss])
+  };
+}
+
+function buildEDOSegments(path, len){
+  var segs=[];
+  var si=Math.floor(path.length*0.3);
+  for(var k=0;k<len;k++){
+    var idx=clamp(si-k,0,path.length-1);
+    segs.push(Object.assign({},path[idx]));
+  }
+  return segs;
+}
+
+// ── Render del jefe EDO (floating math overlay) ──────────────────────────
+var edoBossGlow=0;
+function drawEDOBoss(e){
+  if(!e||e.dead)return;
+  // Draw segments normally
+  drawSnake(e.segments,e.color,false);
+  // Floating math text above boss head
+  var h=e.segments[0];
+  var px=h.x*CELL+CELL/2;
+  var py=h.y*CELL-8;
+  edoBossGlow=(edoBossGlow+0.04)%(Math.PI*2);
+  var pulse=0.7+0.3*Math.sin(edoBossGlow);
+  // Glow ring
+  ctx.save();
+  ctx.globalAlpha=pulse*0.5;
+  ctx.strokeStyle='#ff44ff';ctx.lineWidth=2;
+  ctx.beginPath();ctx.arc(px,h.y*CELL+CELL/2,CELL*2,0,Math.PI*2);ctx.stroke();
+  ctx.globalAlpha=1;
+  // Math formula floating above
+  ctx.font='bold 9px Courier New';
+  ctx.textAlign='center';
+  ctx.fillStyle='#ff44ff';
+  var alpha=Math.round(pulse*255).toString(16).padStart(2,'0');
+  ctx.fillStyle='#ff88ff'+alpha;
+  ctx.fillText(e.math1||e.fx, px, Math.max(10,py-10));
+  ctx.fillText(e.math2||'', px, Math.max(20,py));
+  ctx.restore();
+}
+
+// ── Overlay de EDO al matar (card completa) ──────────────────────────────
+function buildEDOCard(e){
+  var ed=e.edoDef;
+  if(!ed) return '<div style="color:#aac8ff;padding:8px;">Curva de solucion eliminada.</div>';
+
+  var html='<div style="width:100%;max-width:440px;">';
+
+  // Header
+  html+='<div style="background:#1a0a2a;border:2px solid #ff44ff;border-radius:8px;padding:10px 14px;margin-bottom:8px;">';
+  html+='<div style="font-size:13px;color:#ff88ff;font-weight:bold;margin-bottom:4px;">Ecuacion Diferencial</div>';
+  html+='<div style="font-size:16px;color:#ffee66;font-weight:bold;font-family:Courier New,monospace;">'+ed.ecuacion+'</div>';
+  html+='<div style="font-size:10px;color:#cc88ff;margin-top:3px;">'+ed.tipo+'</div>';
+  html+='</div>';
+
+  // Derivacion paso a paso
+  html+='<details open style="margin-bottom:6px;">';
+  html+='<summary style="cursor:pointer;font-size:10px;color:#ffcc44;font-weight:bold;background:#1a1a0a;border:1px solid #ffcc4444;border-radius:5px;padding:5px 9px;list-style:none;">Solucion por Variables Separables [ver]</summary>';
+  html+='<div style="background:#0a0a00;border:1px solid #ffcc4422;border-radius:0 0 5px 5px;padding:8px 10px;font-family:Courier New,monospace;">';
+  ed.derivacion.forEach(function(paso,i){
+    var col=paso.indexOf('\u2713')>=0?'#66ff88':paso.indexOf('  ')===0?'#ffee88':'#aac8ff';
+    html+='<div style="font-size:10px;color:'+col+';line-height:1.8;">'+paso+'</div>';
+  });
+  html+='<div style="margin-top:6px;background:#0a1a0a;border-left:2px solid #2a6a2a;padding:4px 8px;font-size:11px;color:#88ff88;">Sol. General: '+ed.solucionGeneral+'</div>';
+  html+='</div></details>';
+
+  // Existencia y Unicidad
+  html+='<details style="margin-bottom:6px;">';
+  html+='<summary style="cursor:pointer;font-size:10px;color:#44aaff;font-weight:bold;background:#0a0a1a;border:1px solid #44aaff44;border-radius:5px;padding:5px 9px;list-style:none;">Existencia y Unicidad del PVI [ver]</summary>';
+  html+='<div style="background:#05050f;border:1px solid #44aaff22;border-radius:0 0 5px 5px;padding:8px 10px;font-family:Courier New,monospace;font-size:10px;color:#aac8ff;line-height:1.7;">';
+  html+='<div style="color:#88ccff;margin-bottom:4px;"><strong>Teorema de Picard-Lindelof:</strong></div>';
+  html+='<div>Si f(t,y) es <em>continua</em> y <em>Lipschitz en y</em> en un rectangulo R,</div>';
+  html+='<div>entonces el PVI  y\'=f(t,y), y(t\u2080)=y\u2080  tiene <em>solucion unica</em> en algun intervalo alrededor de t\u2080.</div>';
+  html+='<div style="margin-top:6px;background:#0a1220;border-left:2px solid #2244aa;padding:4px 8px;border-radius:0 4px 4px 0;">'+ed.existUnic+'</div>';
+  html+='<div style="margin-top:6px;color:#66ff88;">Condicion inicial: '+ed.condInicial+'</div>';
+  html+='<div>Solucion particular: <strong>'+ed.solucionParticular+'</strong></div>';
+  html+='</div></details>';
+
+  // Canvas con grafica de soluciones
+  html+='<details open style="margin-bottom:6px;">';
+  html+='<summary style="cursor:pointer;font-size:10px;color:#44ffbb;font-weight:bold;background:#0a1a12;border:1px solid #44ffbb44;border-radius:5px;padding:5px 9px;list-style:none;">Familia de Soluciones [grafica]</summary>';
+  html+='<div style="background:#07071a;border:1px solid #44ffbb22;border-radius:0 0 5px 5px;padding:6px;">';
+  html+='<canvas id="edo-graph-'+e.id+'" width="400" height="180" style="width:100%;border-radius:4px;background:#05051a;display:block;"></canvas>';
+  html+='</div></details>';
+
+  // Aplicacion animada
+  html+='<details style="margin-bottom:6px;">';
+  html+='<summary style="cursor:pointer;font-size:10px;color:#ffaa33;font-weight:bold;background:#1a0e00;border:1px solid #ffaa3344;border-radius:5px;padding:5px 9px;list-style:none;">Aplicacion: '+ed.aplicacion.titulo+' [animada]</summary>';
+  html+='<div style="background:#07050a;border:1px solid #ffaa3322;border-radius:0 0 5px 5px;padding:8px 10px;">';
+  html+='<div style="font-size:10px;color:#ddaa77;margin-bottom:6px;font-family:Courier New,monospace;">'+ed.aplicacion.descripcion+'</div>';
+  html+='<div style="font-size:9px;color:#88aaff;margin-bottom:4px;">RESOLUCION PASO A PASO:</div>';
+  ed.aplicacion.pasos.forEach(function(p,i){
+    var col=i===ed.aplicacion.pasos.length-1?'#66ff88':'#ddc899';
+    html+='<div style="font-size:9px;color:'+col+';font-family:Courier New,monospace;line-height:1.8;">'+p+'</div>';
+  });
+  html+='<canvas id="edo-app-'+e.id+'" width="400" height="160" style="width:100%;border-radius:4px;background:#050510;display:block;margin-top:8px;"></canvas>';
+  html+='<div style="font-size:8px;color:#445566;text-align:center;margin-top:3px;">La barra roja indica el tiempo t=10 min</div>';
+  html+='</div></details>';
+
+  html+='</div>';
+  return html;
+}
+
+function renderEDOGraphs(e){
+  var ed=e.edoDef;
+  if(!ed)return;
+  setTimeout(function(){
+    drawEDOFamilyGraph(e);
+    drawEDOAppGraph(e);
+  },100);
+}
+
+function drawEDOFamilyGraph(e){
+  var cv=document.getElementById('edo-graph-'+e.id);
+  if(!cv)return;
+  var CW2=400,CH2=180;
+  cv.width=CW2; cv.height=CH2;
+
+  // ── Pan/zoom state ────────────────────────────────────────────────────
+  if(!cv._pz){
+    cv._pz={panX:0,panY:0,zoom:1,dragging:false,lastX:0,lastY:0,lastDist:0};
+    var pz=cv._pz;
+    cv.addEventListener('mousedown',function(ev){pz.dragging=true;pz.lastX=ev.offsetX;pz.lastY=ev.offsetY;cv.style.cursor='grabbing';});
+    cv.addEventListener('mousemove',function(ev){if(!pz.dragging)return;pz.panX+=ev.offsetX-pz.lastX;pz.panY+=ev.offsetY-pz.lastY;pz.lastX=ev.offsetX;pz.lastY=ev.offsetY;});
+    cv.addEventListener('mouseup',function(){pz.dragging=false;cv.style.cursor='grab';});
+    cv.addEventListener('mouseleave',function(){pz.dragging=false;cv.style.cursor='grab';});
+    cv.addEventListener('wheel',function(ev){
+      ev.preventDefault();
+      var rect=cv.getBoundingClientRect();
+      var mx=(ev.clientX-rect.left)*(CW2/rect.width);
+      var my=(ev.clientY-rect.top)*(CH2/rect.height);
+      var delta=ev.deltaY>0?0.82:1.22;
+      pz.zoom=Math.max(0.2,Math.min(12,pz.zoom*delta));
+      pz.panX=mx-(mx-pz.panX)*delta;
+      pz.panY=my-(my-pz.panY)*delta;
+    },{passive:false});
+    cv.addEventListener('touchstart',function(ev){
+      ev.preventDefault();
+      if(ev.touches.length===1){pz.dragging=true;pz.lastX=ev.touches[0].clientX;pz.lastY=ev.touches[0].clientY;}
+      else if(ev.touches.length===2){pz.dragging=false;var dx=ev.touches[0].clientX-ev.touches[1].clientX,dy=ev.touches[0].clientY-ev.touches[1].clientY;pz.lastDist=Math.sqrt(dx*dx+dy*dy);}
+    },{passive:false});
+    cv.addEventListener('touchmove',function(ev){
+      ev.preventDefault();
+      if(ev.touches.length===1&&pz.dragging){var r2=cv.getBoundingClientRect(),sc=CW2/r2.width;pz.panX+=(ev.touches[0].clientX-pz.lastX)*sc;pz.panY+=(ev.touches[0].clientY-pz.lastY)*sc;pz.lastX=ev.touches[0].clientX;pz.lastY=ev.touches[0].clientY;}
+      else if(ev.touches.length===2){var dx2=ev.touches[0].clientX-ev.touches[1].clientX,dy2=ev.touches[0].clientY-ev.touches[1].clientY,dist=Math.sqrt(dx2*dx2+dy2*dy2);if(pz.lastDist>0){var ratio=dist/pz.lastDist;pz.zoom=Math.max(0.2,Math.min(12,pz.zoom*ratio));}pz.lastDist=dist;}
+    },{passive:false});
+    cv.addEventListener('touchend',function(){pz.dragging=false;pz.lastDist=0;});
+    cv.style.cursor='grab';
+  }
+  var pz=cv._pz;
+
+  var bcfg=e.cfg||{k:0.1,Ta:22,tMin:0,tMax:12};
+  var Cvals=[80,60,40,20,-20,-40];
+  var cols2=['#ff6622','#ffaa22','#ffdd44','#88ffaa','#44aaff','#8888ff'];
+
+  // Base coords (before pan/zoom): origin at left-center, t axis horizontal
+  var OX0=40, OY0=CH2/2;
+  var scx0=(CW2-55)/bcfg.tMax;  // 1 time unit in px at zoom=1
+  var scy0=6;                     // 1 temp unit in px at zoom=1
+
+  var cx3=cv.getContext('2d');
+
+  function renderEDOFrame(){
+    var pz2=cv._pz; if(!pz2)return;
+    var OX=OX0+pz2.panX, OY=OY0+pz2.panY;
+    var scx=scx0*pz2.zoom, scy=scy0*pz2.zoom;
+
+    cx3.fillStyle='#05051a'; cx3.fillRect(0,0,CW2,CH2);
+
+    // Grid
+    cx3.strokeStyle='#0e0e2a'; cx3.lineWidth=0.5;
+    var gstep=scx; var gxS=((0-OX)%gstep+gstep)%gstep;
+    for(var gx=gxS;gx<CW2;gx+=gstep){cx3.beginPath();cx3.moveTo(gx,0);cx3.lineTo(gx,CH2);cx3.stroke();}
+    var gstepY=scy; var gyS=((0-OY)%gstepY+gstepY)%gstepY;
+    for(var gy2=gyS;gy2<CH2;gy2+=gstepY){cx3.beginPath();cx3.moveTo(0,gy2);cx3.lineTo(CW2,gy2);cx3.stroke();}
+
+    // Axes
+    cx3.strokeStyle='#2a3a66'; cx3.lineWidth=1.2;
+    if(OY>0&&OY<CH2){cx3.beginPath();cx3.moveTo(0,OY);cx3.lineTo(CW2,OY);cx3.stroke();}
+    if(OX>0&&OX<CW2){cx3.beginPath();cx3.moveTo(OX,0);cx3.lineTo(OX,CH2);cx3.stroke();}
+
+    // Tick labels
+    cx3.fillStyle='#4a5590'; cx3.font='8px Courier New'; cx3.textAlign='center';
+    var tInt=1; if(scx<15)tInt=2; if(scx<8)tInt=5;
+    var tLo=Math.ceil((-OX)/scx), tHi=Math.floor((CW2-OX)/scx);
+    for(var tt=tLo;tt<=tHi;tt+=tInt){
+      if(tt<0)continue;
+      var ptx=OX+tt*scx;
+      if(ptx>15&&ptx<CW2-5){cx3.beginPath();cx3.moveTo(ptx,OY-2);cx3.lineTo(ptx,OY+2);cx3.stroke();if(scx>8)cx3.fillText(tt,ptx,OY+11);}
+    }
+    var yLo=Math.ceil((OY-CH2)/scy), yHi=Math.floor(OY/scy);
+    cx3.textAlign='right';
+    for(var yy=yLo;yy<=yHi;yy+=tInt){
+      var pty=OY-yy*scy;
+      if(pty>5&&pty<CH2-2){cx3.beginPath();cx3.moveTo(OX-2,pty);cx3.lineTo(OX+2,pty);cx3.stroke();if(scy>6)cx3.fillText(bcfg.Ta+yy,OX-4,pty+3);}
+    }
+
+    // Axis labels
+    cx3.fillStyle='#4455aa'; cx3.font='bold 8px Courier New'; cx3.textAlign='center';
+    cx3.fillText('t (min)',CW2-24,OY-3);
+    cx3.textAlign='left'; cx3.fillText('T(°C)',OX+3,11);
+
+    // Asymptote Ta
+    var pyTa=OY; // Ta maps to 0 offset -> center
+    cx3.strokeStyle='#44aaff55'; cx3.lineWidth=1; cx3.setLineDash([5,4]);
+    cx3.beginPath();cx3.moveTo(0,pyTa);cx3.lineTo(CW2,pyTa);cx3.stroke();cx3.setLineDash([]);
+    cx3.fillStyle='#44aaff88'; cx3.font='7px Courier New'; cx3.textAlign='left';
+    if(pyTa>6&&pyTa<CH2-4)cx3.fillText('T_a='+bcfg.Ta+'°C',OX+4,pyTa-3);
+
+    // Draw solution curves
+    Cvals.forEach(function(C,i){
+      cx3.strokeStyle=cols2[i]; cx3.lineWidth=1.8; cx3.beginPath();
+      var started3=false;
+      var tLo2=Math.max(0,(-OX)/scx), tHi2=bcfg.tMax*2;
+      for(var px=Math.max(0,OX);px<CW2;px++){
+        var tv=(px-OX)/scx;
+        if(tv<0){started3=false;continue;}
+        var Tv=evalEDOSolution(e.edoType||'newton',bcfg,tv,C);
+        // Tv is absolute temperature; offset from Ta for canvas
+        var dy2=(Tv-bcfg.Ta)*scy;
+        var ppy=OY-dy2;
+        if(ppy<-20||ppy>CH2+20){started3=false;continue;}
+        if(!started3){cx3.moveTo(px,ppy);started3=true;}else cx3.lineTo(px,ppy);
+      }
+      cx3.stroke();
+      // Label at leftmost visible point
+      var tFirst=Math.max(0,(-OX)/scx);
+      var TFirst=evalEDOSolution(e.edoType||'newton',bcfg,tFirst,C);
+      var pyFirst=OY-(TFirst-bcfg.Ta)*scy;
+      if(pyFirst>8&&pyFirst<CH2-4&&OX>10){
+        cx3.fillStyle=cols2[i]; cx3.font='7px Courier New'; cx3.textAlign='left';
+        cx3.fillText('T0='+(bcfg.Ta+C),OX+3,pyFirst-2);
+      }
+    });
+
+    // Hint
+    cx3.fillStyle='rgba(5,5,26,0.75)'; cx3.fillRect(0,CH2-14,CW2,14);
+    cx3.fillStyle='#334466'; cx3.font='7px Courier New'; cx3.textAlign='center';
+    cx3.fillText('Arrastra | Scroll/pinch para zoom',CW2/2,CH2-3);
+  }
+
+  // Animate loop
+  var edoFamAnimId;
+  function edoFamLoop(){
+    renderEDOFrame();
+    edoFamAnimId=requestAnimationFrame(edoFamLoop);
+    if(!document.getElementById('edo-graph-'+e.id)){
+      cancelAnimationFrame(edoFamAnimId);
+    }
+  }
+  edoFamAnimId=requestAnimationFrame(edoFamLoop);
+  if(!window._edoAnims)window._edoAnims=[];
+  window._edoAnims.push(edoFamAnimId);
+}
+
+function drawEDOAppGraph(e){
+  var cv=document.getElementById('edo-app-'+e.id);
+  if(!cv)return;
+  var cx2=cv.getContext('2d'); var CW=400,CH=160;
+  var ed=e.edoDef;
+  if(!ed||!ed.aplicacion)return;
+  var ap=ed.aplicacion;
+  var k=ap.k, Ta=ap.Ta, T0=ap.T0, tMax=ap.tMax||15;
+
+  cx2.fillStyle='#050510';cx2.fillRect(0,0,CW,CH);
+  var OX=45,OY=CH-30,scx=(CW-55)/tMax,scyA=(CH-40)/(T0-Ta+10);
+
+  // axes
+  cx2.strokeStyle='#2a3a66';cx2.lineWidth=1;
+  cx2.beginPath();cx2.moveTo(OX,10);cx2.lineTo(OX,OY);cx2.stroke();
+  cx2.beginPath();cx2.moveTo(OX,OY);cx2.lineTo(CW-5,OY);cx2.stroke();
+  cx2.fillStyle='#556688';cx2.font='8px Courier New';cx2.textAlign='center';
+  cx2.fillText('t (min)',CW-22,OY+12);
+  cx2.textAlign='right';cx2.fillText('T (°C)',OX-2,14);
+
+  // tick labels y
+  cx2.textAlign='right';
+  [Ta, Ta+20, Ta+40, T0].forEach(function(yv){
+    var py2=OY-(yv-Ta)*scyA;
+    if(py2>10&&py2<OY){
+      cx2.fillText(yv,OX-3,py2+3);
+      cx2.beginPath();cx2.moveTo(OX-3,py2);cx2.lineTo(OX,py2);cx2.stroke();
+    }
+  });
+
+  // asintota Ta
+  cx2.strokeStyle='#44aaff33';cx2.lineWidth=1;cx2.setLineDash([4,4]);
+  cx2.beginPath();cx2.moveTo(OX,OY);cx2.lineTo(CW,OY);cx2.stroke();
+  cx2.setLineDash([]);
+  cx2.fillStyle='#44aaff88';cx2.font='7px Courier New';cx2.textAlign='left';
+  cx2.fillText('T_a='+Ta+'°C',OX+3,OY-3);
+
+  // animate: draw the curve progressively using requestAnimationFrame
+  var frame=0, totalFrames=120;
+  var animId;
+  function anim(){
+    var prog=Math.min(1,frame/totalFrames);
+    cx2.fillStyle='#050510';cx2.fillRect(OX+1,0,CW,OY-1);
+
+    // curve T(t) for t in [0, tMax*prog]
+    cx2.strokeStyle='#ff8844';cx2.lineWidth=2.5;cx2.beginPath();
+    var started2=false;
+    for(var px=OX;px<OX+(CW-OX-5)*prog;px++){
+      var tv=(px-OX)/scx;
+      var Tv=Ta+(T0-Ta)*Math.exp(-k*tv);
+      var py2=OY-(Tv-Ta)*scyA;
+      if(py2<10||py2>OY){started2=false;continue;}
+      if(!started2){cx2.moveTo(px,py2);started2=true;}else cx2.lineTo(px,py2);
+    }
+    cx2.stroke();
+
+    // t=10 marker
+    if(prog>0.7){
+      var px10=OX+10*scx;
+      var T10=Ta+(T0-Ta)*Math.exp(-k*10);
+      var py10=OY-(T10-Ta)*scyA;
+      cx2.strokeStyle='#ff4444';cx2.lineWidth=1.5;cx2.setLineDash([3,3]);
+      cx2.beginPath();cx2.moveTo(px10,OY);cx2.lineTo(px10,py10);cx2.stroke();
+      cx2.beginPath();cx2.moveTo(OX,py10);cx2.lineTo(px10,py10);cx2.stroke();
+      cx2.setLineDash([]);
+      cx2.fillStyle='#ff8888';cx2.font='bold 9px Courier New';cx2.textAlign='center';
+      cx2.fillText('t=10',px10,OY+12);
+      cx2.textAlign='right';
+      cx2.fillText(T10.toFixed(1)+'°C',OX-2,py10+3);
+      // dot
+      cx2.beginPath();cx2.arc(px10,py10,4,0,Math.PI*2);
+      cx2.fillStyle='#ff4444';cx2.fill();
+    }
+
+    // T0 label
+    cx2.fillStyle='#ffaa44';cx2.font='8px Courier New';cx2.textAlign='left';
+    cx2.fillText('T0='+T0+'°C',OX+3,OY-(T0-Ta)*scyA-3);
+
+    frame++;
+    if(frame<totalFrames+60) animId=requestAnimationFrame(anim);
+  }
+  animId=requestAnimationFrame(anim);
+  // store to cancel when panel closes
+  if(!window._edoAnims) window._edoAnims=[];
+  window._edoAnims.push(animId);
+}
+
+// ── Kill EDO enemy (boss vs minion) ─────────────────────────────────────
+function killEDOEnemy(e){
+  e.dead=true; kills++; score+=e.isBoss?500*(level+1):50*(level+1);
+  startDeathAnim(e, e.segments.map(function(s){return Object.assign({},s);}));
+  player.hp=Math.min(player.maxHp, player.hp+(e.isBoss?30:8));
+  player.bullets=Math.min(player.maxBullets, player.bullets+(e.isBoss?5:2));
+  updateHUD();
+
+  var ov=document.getElementById('overlay');
+  var mathDiv=document.getElementById('ov-math');
+  var btn=document.getElementById('ov-btn');
+
+  if(!e.isBoss){
+    // Minion: breve mensaje, continuar
+    document.getElementById('ov-title').textContent='Curva eliminada: '+e.name;
+    document.getElementById('ov-phase-banner').style.display='none';
+    document.getElementById('ov-desc').textContent='Esta curva es una solucion particular. El jefe (Solucion General) sigue vivo!';
+    mathDiv.style.display='block';
+    mathDiv.innerHTML='<div style="background:#0a0a1a;border:1px solid #334466;border-radius:6px;padding:10px;font-family:Courier New,monospace;font-size:10px;color:#aac8ff;">'+
+      '<div style="color:#ffcc44;font-weight:bold;margin-bottom:4px;">'+e.fx+'</div>'+
+      '<div>Esta es una <strong>solucion particular</strong> de la EDO.</div>'+
+      '<div>Condicion inicial implicita: C = '+e.C+'</div>'+
+      '<div style="margin-top:6px;color:#88ff88;">La familia completa: T(t) = T_a + C·e^(-kt)  con C arbitrario.</div>'+
+    '</div>';
+    var alive=enemies.filter(function(en){return!en.dead;});
+    btn.textContent='Continuar — '+alive.length+' restante'+(alive.length>1?'s':'');
+    btn.onclick=function(){ov.style.display='none';gameState='playing';};
+    gameState='info';
+    ov.style.display='flex';
+    return;
+  }
+
+  // BOSS killed: full EDO card
+  document.getElementById('ov-title').textContent='JEFE VENCIDO: Solucion General';
+  document.getElementById('ov-phase-banner').style.display='block';
+  document.getElementById('ov-phase-banner').textContent='Has dominado la EDO de Newton!';
+  document.getElementById('ov-desc').textContent='La solucion general fue vencida. Aqui esta todo lo que aprendiste:';
+  mathDiv.style.display='block';
+  mathDiv.innerHTML=buildEDOCard(e);
+  renderEDOGraphs(e);
+
+  var alive2=enemies.filter(function(en){return!en.dead;});
+  if(alive2.length>0){
+    btn.textContent='Continuar (quedan minions)';
+    btn.onclick=function(){ov.style.display='none';gameState='playing';};
+  } else {
+    if(level<LEVELS.length-1){
+      btn.textContent='Siguiente: '+LEVELS[level+1].name;
+      btn.onclick=function(){level++;startLevel();};
+    } else {
+      btn.textContent='Juego COMPLETADO! Reiniciar';
+      btn.onclick=function(){level=0;score=0;kills=0;LEVELS=generateAllLevels();showIntro();};
+    }
+  }
+  gameState='info';
+  ov.style.display='flex';
+}
+
+function generateAllLevels(){
+  var levels=[];
+  var fN=['Lineal','Cuadraticas','Cubica & Raiz','Trigonometricas','Racional & Exponencial','Trascendentales'];
+  var iN=['Int. Lineal','Int. Cuadratica','Int. Trigonometricas','Int. Exponencial','Int. Logaritmo','Int. Mixta Final'];
+  FUNC_TPL.forEach(function(tpl,i){
+    levels.push({name:'Nivel '+(i+1)+' - '+fN[i],phase:'func',enemies:buildLevel(tpl,'func')});
+  });
+  DERIV_TPL.forEach(function(tpl,i){
+    levels.push({name:'Nivel '+(i+7)+' - Derivada: '+fN[i],phase:'deriv',enemies:buildLevel(tpl,'deriv')});
+  });
+  INTEG_TPL.forEach(function(tpl,i){
+    levels.push({name:'Nivel '+(i+13)+' - Integral: '+iN[i],phase:'integ',enemies:buildLevelInteg(tpl)});
+  });
+  // EDO level (Nivel 19)
+  var edoLvl=buildEDOLevel(0);
+  levels.push(edoLvl);
+  return levels;
+}
+
+var LEVELS=generateAllLevels();
+var level=0, gameState='intro';
+var player, playerBullets, enemies, enemyBullets;
+var score=0, kills=0;
+var lastTime=0, playerMoveTimer=0;
+var PLAYER_SPEED=115;
+
+// DEATH ANIMATION
+var deathAnims=[];
+function startDeathAnim(e,segs){deathAnims.push({e:e,t:0,segs:segs});}
+function updateDeathAnims(dt){
+  deathAnims.forEach(function(da){da.t+=dt/1200;if(da.t>1)da.t=1;});
+  deathAnims=deathAnims.filter(function(da){return da.t<1;});
+}
+function drawDeathAnims(){
+  dCtx.clearRect(0,0,W,H);
+  deathAnims.forEach(function(da){
+    var e=da.e,t=da.t;
+    if(t<0.4){
+      var alpha=1-t/0.4;
+      da.segs.forEach(function(s,i){
+        var sc=(t/0.4)*3*(i%3===0?-1:1);
+        var sx=s.x*CELL+CELL/2+sc*CELL,sy=s.y*CELL+CELL/2+sc*CELL*0.5;
+        var r=(CELL/2)*(1-t/0.4)*0.8;
+        dCtx.beginPath();dCtx.arc(sx,sy,Math.max(1,r),0,Math.PI*2);
+        var hex=Math.round(alpha*255).toString(16).padStart(2,'0');
+        dCtx.fillStyle=e.color+hex;dCtx.fill();
+      });
+    } else {
+      var prog=(t-0.4)/0.6;
+      var al=Math.min(1,prog*2);
+      var ha=Math.round(al*220).toString(16).padStart(2,'0');
+      dCtx.strokeStyle='#334466aa';dCtx.lineWidth=0.8;
+      dCtx.beginPath();dCtx.moveTo(ORIG_X,0);dCtx.lineTo(ORIG_X,H);dCtx.stroke();
+      dCtx.beginPath();dCtx.moveTo(0,ORIG_Y);dCtx.lineTo(W,ORIG_Y);dCtx.stroke();
+      dCtx.strokeStyle=e.color+ha;dCtx.lineWidth=2.5;dCtx.setLineDash([]);dCtx.beginPath();
+      var started=false;
+      var maxX=Math.round(prog*(COLS-4));
+      for(var cx=2;cx<=maxX;cx++){
+        var raw=evalFunc(e.type,e.cfg,cx);
+        if(raw===null||!isFinite(raw)||Math.abs(raw)>30){started=false;continue;}
+        var cy=MID_Y-raw*1.5;
+        var px=cx*CELL+CELL/2,py=cy*CELL+CELL/2;
+        if(py<0||py>H){started=false;continue;}
+        if(!started){dCtx.moveTo(px,py);started=true;}else dCtx.lineTo(px,py);
+      }
+      dCtx.stroke();
+      if(prog>0.6){
+        var la=Math.round(((prog-0.6)/0.4)*200).toString(16).padStart(2,'0');
+        dCtx.font='bold 13px Courier New';dCtx.fillStyle=e.color+la;
+        dCtx.textAlign='left';dCtx.fillText(e.fx,8,18);
+      }
+    }
+  });
+}
+
+// PLAYER & ENEMIES
+function initPlayer(){
+  player={
+    segments:[{x:MID_X,y:MID_Y+10},{x:MID_X-1,y:MID_Y+10},{x:MID_X-2,y:MID_Y+10}],
+    dir:{x:1,y:0},nextDir:{x:1,y:0},
+    hp:100+level*20,maxHp:100+level*20,
+    dmg:25+level*18,
+    maxBullets:6+level*2,bullets:6+level*2,
+    reloadTime:Math.max(300,1200-level*70),reloadTimer:0,
+    color:'#44ff88',grow:0
+  };
+}
+
+function initEnemies(){
+  enemies=LEVELS[level].enemies.map(function(cfg,i){
+    var path=buildPath(cfg);
+    var si=clamp(Math.floor(path.length*(0.3+i*0.25)),0,path.length-1);
+    var bodyLen=9+level*2;
+    var segs=[];
+    for(var kk=0;kk<bodyLen;kk++) segs.push(Object.assign({},path[clamp(si-kk,0,path.length-1)]));
+    var isInteg=level>=12;
+    var sc=isInteg?Math.min(6,3+Math.floor((level-12)/2)):Math.min(4,1+Math.floor(level/3));
+    var hpM=isInteg?1.6:1, dmM=isInteg?1.5:1, spM=isInteg?0.75:1;
+    return Object.assign({},cfg,{
+      segments:segs,
+      hp:Math.round((cfg.hp+level*18)*hpM),maxHp:Math.round((cfg.hp+level*18)*hpM),
+      dmg:Math.round((cfg.dmg+level*2)*dmM),speed:Math.round(cfg.speed*spM),
+      path:path,pathIdx:si,pathDir:1,moveTimer:0,
+      shootTimer:Math.random()*2000,
+      shootInterval:Math.max(500,2200-level*120)+Math.random()*800,
+      shootCount:sc,bullets:sc*(4+level)*(isInteg?2:1),dead:false,grow:0
+    });
+  });
+}
+
+function startLevel(){
+  var ph=LEVELS[level].phase;
+  if(ph==='func'){
+    var tpl=FUNC_TPL[level];
+    LEVELS[level].enemies=buildLevel(tpl,'func');
+  } else if(ph==='deriv'){
+    var tpl2=DERIV_TPL[level-6];
+    LEVELS[level].enemies=buildLevel(tpl2,'deriv');
+  } else if(ph==='integ'){
+    var tpl3=INTEG_TPL[level-12];
+    LEVELS[level].enemies=buildLevelInteg(tpl3);
+  } else if(ph==='edo'){
+    var edoLvl=buildEDOLevel(0);
+    LEVELS[level].enemies=edoLvl.enemies;
+  }
+  initPlayer();initEnemies();
+  playerBullets=[];enemyBullets=[];deathAnims=[];
+  gameState='playing';
+  if(!_deathCount[level]) _deathCount[level]=0; // keep existing count, only reset on surrender
+  updateHUD();updateEnemyHUD();
+  document.getElementById('overlay').style.display='none';
+  Object.keys(_af).forEach(function(k){cancelAnimationFrame(_af[k]);delete _af[k];});
+}
+
+// HUD
+function updateHUD(){
+  document.getElementById('h-lvl').textContent=level+1;
+  var ph=level<6?'Funciones':level<12?'Derivadas':level<18?'Integrales':'EDOs';
+  document.getElementById('h-phase').textContent=ph;
+  document.getElementById('h-hp').textContent=Math.max(0,Math.round(player.hp));
+  document.getElementById('bar-hp').style.width=Math.max(0,(player.hp/player.maxHp)*100)+'%';
+  document.getElementById('h-dmg').textContent=player.dmg;
+  document.getElementById('h-bullets').textContent=player.bullets+'/'+player.maxBullets;
+  var rpct=player.bullets>=player.maxBullets?100:Math.round((player.reloadTimer/player.reloadTime)*100);
+  document.getElementById('bar-reload').style.width=rpct+'%';
+  document.getElementById('h-score').textContent=score;
+  document.getElementById('h-kills').textContent=kills;
+}
+
+function updateEnemyHUD(){
+  var alive=enemies?enemies.filter(function(e){return!e.dead;}):[]; 
+  if(!alive.length){
+    document.getElementById('enemy-name').textContent='- Sin enemigos -';
+    document.getElementById('enemy-fx').textContent='';
+    document.getElementById('enemy-hp-bar').style.width='0%';
+    document.getElementById('enemy-hp-txt').textContent='';return;
+  }
+  var e=alive[0];
+  document.getElementById('enemy-name').textContent=e.name;
+  document.getElementById('enemy-fx').textContent=e.fx;
+  document.getElementById('enemy-hp-bar').style.width=Math.max(0,(e.hp/e.maxHp)*100)+'%';
+  document.getElementById('enemy-hp-txt').textContent=Math.round(e.hp)+'/'+e.maxHp;
+}
+
+// SHOOT
+function shootPlayer(){
+  if(player.bullets<=0)return;
+  var h=player.segments[0];
+  playerBullets.push({x:h.x*CELL+CELL/2,y:h.y*CELL+CELL/2,vx:player.dir.x*4.5,vy:player.dir.y*4.5,r:6,color:'#66ffaa',dmg:player.dmg,life:400});
+  player.bullets--;
+  if(player.reloadTimer<=0)player.reloadTimer=player.reloadTime;
+  updateHUD();
+}
+
+function shootEnemyBurst(e){
+  if(e.dead||e.bullets<=0)return;
+  var h=e.segments[0],ph=player.segments[0];
+  var baseAngle=Math.atan2(ph.y-h.y,ph.x-h.x);
+  var count=e.shootCount||1;
+  var spread=(count-1)*0.18;
+  for(var i=0;i<count;i++){
+    if(e.bullets<=0)break;
+    var angle=count===1?baseAngle:baseAngle-spread/2+i*(spread/(count-1));
+    var spd=3.0+level*0.15;
+    enemyBullets.push({x:h.x*CELL+CELL/2,y:h.y*CELL+CELL/2,vx:Math.cos(angle)*spd,vy:Math.sin(angle)*spd,r:4+Math.min(2,Math.floor(level/3)),color:'#ff3355',dmg:e.dmg,life:480});
+    e.bullets--;
+  }
+}
+
+// UPDATE
+function update(dt){
+  if(gameState!=='playing')return;
+  if(player.bullets<player.maxBullets){
+    player.reloadTimer+=dt;
+    if(player.reloadTimer>=player.reloadTime){player.reloadTimer=0;player.bullets++;updateHUD();}
+  } else {player.reloadTimer=0;}
+  updateHUD();
+  playerMoveTimer+=dt;
+  if(playerMoveTimer>=PLAYER_SPEED){
+    playerMoveTimer=0;
+    player.dir=Object.assign({},player.nextDir);
+    var h=player.segments[0];
+    var nx=((h.x+player.dir.x)%COLS+COLS)%COLS;
+    var ny=((h.y+player.dir.y)%ROWS+ROWS)%ROWS;
+    if(player.grow>0){player.grow--;player.segments.unshift({x:nx,y:ny});}
+    else{player.segments.unshift({x:nx,y:ny});player.segments.pop();}
+  }
+  enemies.forEach(function(e){
+    if(e.dead)return;
+    e.moveTimer+=dt;
+    if(e.moveTimer>=e.speed){
+      e.moveTimer=0;
+      e.pathIdx+=e.pathDir;
+      if(e.pathIdx>=e.path.length-1){e.pathIdx=e.path.length-1;e.pathDir=-1;}
+      else if(e.pathIdx<=0){e.pathIdx=0;e.pathDir=1;}
+      var np=e.path[e.pathIdx];
+      if(e.grow>0){e.grow--;e.segments.unshift(Object.assign({},np));}
+      else{e.segments.unshift(Object.assign({},np));e.segments.pop();}
+    }
+    e.shootTimer+=dt;
+    if(e.shootTimer>=e.shootInterval&&e.bullets>0){
+      e.shootTimer=0;e.shootInterval=Math.max(500,2200-level*120)+Math.random()*800;
+      shootEnemyBurst(e);
+    }
+  });
+  playerBullets.forEach(function(b){b.x+=b.vx;b.y+=b.vy;b.life-=dt;});
+  playerBullets=playerBullets.filter(function(b){return b.life>0&&b.x>0&&b.x<W&&b.y>0&&b.y<H;});
+  enemyBullets.forEach(function(b){b.x+=b.vx;b.y+=b.vy;b.life-=dt;});
+  enemyBullets=enemyBullets.filter(function(b){return b.life>0&&b.x>0&&b.x<W&&b.y>0&&b.y<H;});
+  playerBullets.forEach(function(b){
+    enemies.forEach(function(e){
+      if(e.dead)return;
+      e.segments.forEach(function(s){
+        if(Math.abs(b.x-s.x*CELL-CELL/2)<CELL&&Math.abs(b.y-s.y*CELL-CELL/2)<CELL){
+          e.hp-=b.dmg;b.life=-1;if(e.hp<=0)killEnemy(e);
+        }
+      });
+    });
+  });
+  var ph=player.segments[0];
+  var phx=ph.x*CELL+CELL/2,phy=ph.y*CELL+CELL/2;
+  enemyBullets.forEach(function(b){
+    if(Math.abs(b.x-phx)<CELL&&Math.abs(b.y-phy)<CELL){player.hp-=b.dmg;b.life=-1;updateHUD();if(player.hp<=0)gameOver();}
+  });
+  enemies.forEach(function(e){
+    if(e.dead)return;
+    e.segments.forEach(function(s){
+      if(s.x===ph.x&&s.y===ph.y){player.hp-=e.dmg*0.4;updateHUD();if(player.hp<=0)gameOver();}
+    });
+  });
+  updateDeathAnims(dt);
+  if(enemies.every(function(e){return e.dead;})&&gameState==='playing')levelComplete();
+  updateEnemyHUD();
+}
+
+// KILL ENEMY
+function killEnemy(e){
+  // Route EDO enemies to specialized handler
+  if(e.isEDO){ killEDOEnemy(e); return; }
+  e.dead=true;kills++;score+=100*(level+1);
+  startDeathAnim(e,e.segments.map(function(s){return Object.assign({},s);}));
+  player.hp=Math.min(player.maxHp,player.hp+15);
+  player.bullets=Math.min(player.maxBullets,player.bullets+3);
+  updateHUD();
+  var ov=document.getElementById('overlay');
+  document.getElementById('ov-title').textContent='Eliminaste: '+e.name;
+  document.getElementById('ov-phase-banner').style.display='none';
+  document.getElementById('ov-desc').textContent='Observa como la serpiente se convierte en su grafica real...';
+  var mathDiv=document.getElementById('ov-math');
+  mathDiv.style.display='block';
+  mathDiv.innerHTML=buildMathCard(e);
+  var alive=enemies.filter(function(en){return!en.dead;});
+  var btn=document.getElementById('ov-btn');
+  if(alive.length>0){
+    btn.textContent='Continuar ('+alive.length+' restante'+(alive.length>1?'s':'')+')';
+    btn.onclick=function(){ov.style.display='none';gameState='playing';};
+  } else {
+    if(level<LEVELS.length-1){
+      var curr=level>=12?'integ':level>=6?'deriv':'func';
+      var next=(level+1)>=12?'integ':(level+1)>=6?'deriv':'func';
+      if(curr==='func'&&next==='deriv') btn.textContent='Enfrentar a Las Derivadas!';
+      else if(curr==='deriv'&&next==='integ') btn.textContent='Enfrentar a Las Integrales!';
+      else btn.textContent='Siguiente: '+LEVELS[level+1].name;
+      btn.onclick=function(){level++;startLevel();};
+    } else {
+      btn.textContent='Juego completado! Reiniciar';
+      btn.onclick=function(){level=0;score=0;kills=0;LEVELS=generateAllLevels();showIntro();};
+    }
+  }
+  gameState='info';
+  ov.style.display='flex';
+  Object.keys(_af).forEach(function(k){cancelAnimationFrame(_af[k]);delete _af[k];});
+  setTimeout(function(){drawMiniGraph(e);},80);
+}
+
+function levelComplete(){
+  gameState='info';
+  var ov=document.getElementById('overlay');
+  document.getElementById('ov-math').style.display='none';document.getElementById('ov-math').innerHTML='';
+  document.getElementById('ov-phase-banner').style.display='none';
+  document.getElementById('ov-title').textContent='Nivel '+(level+1)+' completado!';
+  document.getElementById('ov-desc').textContent='Score: '+score+' - Kills: '+kills;
+  var btn=document.getElementById('ov-btn');
+  if(level<LEVELS.length-1){
+    var isPhase=level===5||level===11||level===17;
+    if(isPhase){
+      document.getElementById('ov-phase-banner').style.display='block';
+      var bTxt=level===5?'Ahora enfrentaras a LAS DERIVADAS!':
+               level===11?'FASE FINAL: LAS INTEGRALES! Maxima dificultad.':
+               'BOSS FINAL: LAS EDOs! Ecuaciones Diferenciales te esperan.';
+      document.getElementById('ov-phase-banner').textContent=bTxt;
+      btn.textContent=level===5?'Acepto el reto! Nivel 7':
+                      level===11?'Integrar o morir! Nivel 13':
+                      'Enfrentar las EDOs! Nivel 19';
+    } else {
+      btn.textContent='Nivel '+(level+2)+': '+LEVELS[level+1].name;
+    }
+    btn.onclick=function(){level++;startLevel();};
+  } else {
+    btn.textContent='Completaste todo! Reiniciar';
+    btn.onclick=function(){level=0;score=0;kills=0;LEVELS=generateAllLevels();showIntro();};
+  }
+  ov.style.display='flex';
+}
+
+var _deathCount = {}; // level -> number of deaths
+
+function gameOver(){
+  gameState='gameover';
+  // Track deaths per level
+  if(!_deathCount[level]) _deathCount[level]=0;
+  _deathCount[level]++;
+
+  var ov=document.getElementById('overlay');
+  var mathDiv=document.getElementById('ov-math');
+  var btn=document.getElementById('ov-btn');
+  document.getElementById('ov-phase-banner').style.display='none';
+
+  var isHard = level>=17; // Levels 18 and 19 (index 17,18)
+  var diedBefore = _deathCount[level] > 1;
+
+  document.getElementById('ov-title').textContent='GAME OVER';
+  document.getElementById('ov-desc').textContent='Puntuacion: '+score;
+
+  if(isHard && diedBefore){
+    // Show surrender option alongside retry
+    mathDiv.style.display='block';
+    mathDiv.innerHTML=
+      '<div style="background:#1a0808;border:1px solid #882222;border-radius:8px;padding:10px 14px;font-family:Courier New,monospace;">'+
+      '<div style="font-size:11px;color:#ff8888;margin-bottom:8px;">Este nivel es muy dificil. Puedes rendirte para ver el contenido educativo.</div>'+
+      '<button onclick="surrenderLevel()" style="width:100%;background:#2a0a0a;color:#ff6644;border:1px solid #882222;'+
+      'border-radius:6px;padding:8px;font-family:Courier New,monospace;font-size:12px;cursor:pointer;margin-bottom:6px;">'+
+      'Rendirse y ver el contenido del nivel</button>'+
+      '<div style="font-size:9px;color:#664444;text-align:center;">Muertes en este nivel: '+_deathCount[level]+'</div>'+
+      '</div>';
+  } else {
+    mathDiv.style.display='none';
+    mathDiv.innerHTML='';
+  }
+
+  btn.textContent='Reintentar - Nivel '+(level+1);
+  btn.onclick=function(){startLevel();};
+  ov.style.display='flex';
+}
+
+function surrenderLevel(){
+  // Show the victory content without having won — but mark it as "rendido"
+  var ph=LEVELS[level].phase;
+  var ov=document.getElementById('overlay');
+  document.getElementById('ov-title').textContent='Contenido: Nivel '+(level+1);
+  document.getElementById('ov-desc').textContent='Aqui esta lo que habrias aprendido al vencer este nivel.';
+  document.getElementById('ov-phase-banner').style.display='block';
+  document.getElementById('ov-phase-banner').textContent='Modo lectura — no se otorgan puntos';
+
+  var mathDiv=document.getElementById('ov-math');
+  mathDiv.style.display='block';
+
+  if(ph==='edo'){
+    // Show EDO boss card
+    var enemies2=LEVELS[level].enemies;
+    var boss=enemies2[enemies2.length-1];
+    if(boss&&boss.isEDO&&boss.isBoss){
+      mathDiv.innerHTML=buildEDOCard(boss);
+      renderEDOGraphs(boss);
+    } else {
+      mathDiv.innerHTML='<div style="color:#aac8ff;padding:8px;">Contenido EDO no disponible.</div>';
+    }
+  } else {
+    // For integ/deriv levels: show card of the first alive (or last) enemy
+    var enemies3=LEVELS[level].enemies;
+    var target=enemies3[enemies3.length-1];
+    if(target){
+      // Regenerate enemy with fresh id so cards don't clash
+      target.id='surr_'+Math.random().toString(36).slice(2,6);
+      mathDiv.innerHTML=buildMathCard(target);
+      setTimeout(function(){drawMiniGraph(target);},80);
+    }
+  }
+
+  var btn=document.getElementById('ov-btn');
+  if(level<LEVELS.length-1){
+    btn.textContent='Ir al siguiente nivel';
+    btn.onclick=function(){level++;_deathCount[level]=0;startLevel();};
+  } else {
+    btn.textContent='Volver al menu';
+    btn.onclick=function(){showIntro();};
+  }
+  // Add retry option too
+  var mathDiv2=document.getElementById('ov-math');
+  var retryDiv=document.createElement('div');
+  retryDiv.style.cssText='margin-top:10px;text-align:center;';
+  retryDiv.innerHTML='<button onclick="startLevel()" style="background:#0e1a3a;color:#88aaff;border:1px solid #2a4488;'+
+    'border-radius:6px;padding:5px 16px;font-family:Courier New,monospace;font-size:10px;cursor:pointer;">'+
+    'Reintentar este nivel</button>';
+  mathDiv2.appendChild(retryDiv);
+}
+
+function togglePause(){
+  if(gameState==='playing'){
+    gameState='paused';
+    document.getElementById('pause-overlay').style.display='flex';
+    document.getElementById('btn-pause').textContent='Continuar (P)';
+  } else if(gameState==='paused'){
+    gameState='playing';
+    document.getElementById('pause-overlay').style.display='none';
+    document.getElementById('btn-pause').textContent='Pausar (P)';
+    lastTime=0;
+  }
+}
+
+function confirmRestart(){
+  if(gameState==='paused')document.getElementById('pause-overlay').style.display='none';
+  document.getElementById('btn-pause').textContent='Pausar (P)';startLevel();
+}
+
+function goToMenu(){
+  if(gameState==='paused')document.getElementById('pause-overlay').style.display='none';
+  document.getElementById('btn-pause').textContent='Pausar (P)';
+  score=0;kills=0;level=0;LEVELS=generateAllLevels();showIntro();
+}
+
+// ── BOOK DATA ──────────────────────────────────────────────────────────────
+var BOOKS=[
+  {
+    title:'Algebra y Trigonometria',
+    author:'Zill, D. G., & Dewar, J. M.',
+    edition:'Zill, D. G., & Dewar, J. M. (2012). <em>Algebra y trigonometria con geometria analitica</em> (4.a ed.). McGraw-Hill.',
+    topics:['Funciones y sus graficas','Funciones lineales y afines','Parabolas y funciones cuadraticas','Funciones polinomiales','Funciones racionales','Funciones exponenciales y logaritmicas','Funciones trigonometricas y sus inversas'],
+    best:'Capitulos 2-6. Ideal para dominar la base de este juego.',
+    color:'#44aaff',
+    phase:'func'
+  },
+  {
+    title:'Precalculo: Matematicas para el Calculo',
+    author:'Stewart, J., Redlin, L., & Watson, S.',
+    edition:'Stewart, J., Redlin, L., & Watson, S. (2016). <em>Precalculo: matematicas para el calculo</em> (7.a ed.). Cengage Learning.',
+    topics:['Funciones: dominio, recorrido, graficas','Funciones lineales, cuadraticas y polinomiales','Funciones racionales y asintotas','Funciones exponenciales y logaritmicas','Funciones trigonometricas','Analisis de funciones: crecimiento, extremos'],
+    best:'Capitulos 2-5. Cobertura amplia con muchos ejemplos graficos.',
+    color:'#ff8844',
+    phase:'func'
+  },
+  {
+    title:'Calculo: Trascendentes Tempranas',
+    author:'Stewart, J.',
+    edition:'Stewart, J. (2016). <em>Calculo: trascendentes tempranas</em> (8.a ed.). Cengage Learning.',
+    topics:['Limites y continuidad','Derivadas: definicion y reglas','Derivadas de funciones trascendentes','Aplicaciones de la derivada','Integrales indefinidas y definidas','Tecnicas de integracion'],
+    best:'Capitulos 2-8. Estandar universitario para derivadas e integrales.',
+    color:'#aa44ff',
+    phase:'deriv'
+  },
+  {
+    title:'Calculo con Geometria Analitica',
+    author:'Larson, R., & Edwards, B. H.',
+    edition:'Larson, R., & Edwards, B. H. (2016). <em>Calculo</em> (10.a ed.). Cengage Learning.',
+    topics:['Limites y su calculo','Diferenciacion: reglas basicas y de cadena','Derivadas implicitas','Integracion por sustitucion','Integrales de funciones trigonometricas','Integracion por partes'],
+    best:'Capitulos 2-8. Excelente para practicar tecnicas de integracion.',
+    color:'#44ffbb',
+    phase:'integ'
+  },
+  {
+    title:'Matematicas para Administracion y Economia',
+    author:'Haeussler, E. F., Paul, R. S., & Wood, R. J.',
+    edition:'Haeussler, E. F., Paul, R. S., & Wood, R. J. (2019). <em>Matematicas para administracion y economia</em> (14.a ed.). Pearson Educacion.',
+    topics:['Funciones lineales y cuadraticas aplicadas','Funciones exponenciales en finanzas','Logaritmos y modelos de crecimiento','Derivadas y analisis marginal','Integracion y area bajo la curva','Funciones de varias variables'],
+    best:'Capitulos 2-14. Ideal para aplicaciones en economia y negocios.',
+    color:'#ffaa22',
+    phase:'func'
+  },
+  {
+    title:'Algebra Lineal y sus Aplicaciones',
+    author:'Lay, D. C., Lay, S. R., & McDonald, J. J.',
+    edition:'Lay, D. C., Lay, S. R., & McDonald, J. J. (2016). <em>Algebra lineal y sus aplicaciones</em> (5.a ed.). Pearson Educacion.',
+    topics:['Transformaciones lineales','Matrices y sistemas de ecuaciones','Espacios vectoriales','Valores y vectores propios','Producto interno y ortogonalidad','Descomposicion espectral'],
+    best:'Capitulos 1-6. Para ir mas alla de las funciones hacia algebra lineal.',
+    color:'#88ff44',
+    phase:'deriv'
+  }
+];
+
+function showIntro(){
+  gameState='intro';
+  document.getElementById('ov-title').textContent='Serpientes Funcion';
+  document.getElementById('ov-phase-banner').style.display='none';
+
+  var mathDiv=document.getElementById('ov-math');
+  mathDiv.style.display='block';
+  mathDiv.innerHTML=buildIntroMenu();
+
+  document.getElementById('ov-desc').textContent='18 niveles: Funciones, Derivadas e Integrales. Elige desde donde comenzar.';
+
+  var btn=document.getElementById('ov-btn');
+  btn.textContent='Comenzar desde Nivel 1';
+  btn.onclick=function(){level=0;score=0;kills=0;LEVELS=generateAllLevels();startLevel();};
+
+  document.getElementById('overlay').style.display='flex';
+  // Wire level buttons after render
+  setTimeout(wireIntroButtons, 0);
+}
+
+function renderBookCard(b){
+  var html='<details style="margin-bottom:6px;">';
+  html+='<summary style="cursor:pointer;font-size:10px;color:'+b.color+';font-weight:bold;'+
+        'background:#0c0c22;border:1px solid '+b.color+'44;border-radius:5px;padding:5px 9px;'+
+        'list-style:none;display:flex;align-items:center;justify-content:space-between;">'+
+        '<span>'+b.title+'</span>'+
+        '<span style="font-size:8px;color:#445566;margin-left:6px;">'+
+        (b.phase==='func'?'Funciones':b.phase==='deriv'?'Derivadas':'Integrales')+'  [+]</span></summary>';
+  html+='<div style="background:#070714;border:1px solid '+b.color+'22;border-radius:0 0 5px 5px;'+
+        'padding:8px 10px;font-size:10px;line-height:1.7;font-family:Courier New,monospace;">';
+  // APA7 reference block
+  html+='<div style="background:#0a0a20;border-left:3px solid '+b.color+';padding:5px 9px;'+
+        'border-radius:0 4px 4px 0;margin-bottom:8px;">';
+  html+='<div style="font-size:8px;color:#556688;letter-spacing:0.8px;margin-bottom:2px;">REFERENCIA APA 7.a EDICION</div>';
+  html+='<div style="color:#d0d8ee;font-size:10px;line-height:1.6;">'+b.edition+'</div>';
+  html+='</div>';
+  // Topics
+  html+='<div style="color:#88aaff;margin-bottom:3px;font-size:9px;letter-spacing:0.5px;">TEMAS RELEVANTES:</div>';
+  html+='<ul style="margin:0 0 6px 14px;color:#9aadcc;">';
+  b.topics.forEach(function(tp){html+='<li style="font-size:9px;">'+tp+'</li>';});
+  html+='</ul>';
+  html+='<div style="background:#0e1a0e;border-left:2px solid #2a6a2a;padding:4px 8px;border-radius:0 4px 4px 0;font-size:9px;color:#66ff88;">'+b.best+'</div>';
+  html+='</div></details>';
+  return html;
+}
+
+function buildIntroMenu(){
+  var sections=[
+    {label:'Funciones',    icon:'f(x)', color:'#44aaff', levels:[1,2,3,4,5,6],   start:0},
+    {label:'Derivadas',    icon:"f'(x)",color:'#aa44ff', levels:[7,8,9,10,11,12], start:6},
+    {label:'Integrales',   icon:'F(x)', color:'#44ffbb', levels:[13,14,15,16,17,18],start:12},
+    {label:'EDOs',         icon:"y'=f", color:'#ff44ff', levels:[19],              start:18}
+  ];
+  var html='<div style="width:100%;max-width:440px;">';
+
+  // ── SECTION SELECTOR ───────────────────────────────────────────────────
+  html+='<div style="background:#0a0a1e;border:1px solid #2a2a44;border-radius:8px;padding:10px 12px;margin-bottom:10px;">';
+  html+='<div style="font-size:11px;color:#88aaff;font-weight:bold;margin-bottom:8px;letter-spacing:1px;">ELEGIR SECCION DE INICIO</div>';
+
+  sections.forEach(function(sec){
+    html+='<div style="margin-bottom:8px;">';
+    html+='<div style="font-size:10px;color:'+sec.color+';font-weight:bold;margin-bottom:4px;">'+sec.icon+' — '+sec.label+'</div>';
+    html+='<div style="display:flex;flex-wrap:wrap;gap:4px;">';
+    sec.levels.forEach(function(lvl, i){
+      var li=sec.start+i;
+      var nm=['Lineal','Cuadraticas','Cubica & Raiz','Trigonometricas','Racional & Exp.','Trascendentales'];
+      var ni=['Int. Lineal','Int. Cuadratica','Int. Trigon.','Int. Exponencial','Int. Logaritmo','Int. Mixta'];
+      var derN=['D/Lineal','D/Cuadraticas','D/Cubica & Raiz','D/Trigonometricas','D/Racional & Exp.','D/Trascendentes'];
+      var edoN=['Newton Cooling'];
+      var labels=sec.start<6?nm:sec.start<12?derN:sec.start<18?ni:edoN;
+      html+='<button class="lvl-select-btn" data-li="'+li+'" style="'+
+        'background:#0e0e28;color:'+sec.color+';border:1px solid '+sec.color+'44;'+
+        'border-radius:4px;font-family:Courier New,monospace;font-size:9px;'+
+        'padding:3px 7px;cursor:pointer;transition:all 0.15s;" '+
+        'title="'+labels[i]+'">'+'N'+lvl+'</button>';
+    });
+    html+='</div></div>';
+  });
+  html+='</div>';
+
+  // ── BOOK RECOMMENDATIONS ───────────────────────────────────────────────
+  html+='<div style="background:#0a0a1e;border:1px solid #2a2a44;border-radius:8px;padding:10px 12px;">';
+  html+='<div style="font-size:11px;color:#ffcc44;font-weight:bold;margin-bottom:8px;letter-spacing:1px;">LIBROS RECOMENDADOS</div>';
+
+  BOOKS.forEach(function(b){ html+=renderBookCard(b); });
+  html+='</div>';
+
+  html+='</div>';
+  return html;
+}
+
+function wireIntroButtons(){
+  document.querySelectorAll('.lvl-select-btn').forEach(function(btn){
+    btn.addEventListener('mouseenter',function(){
+      this.style.background=this.style.borderColor.replace('44','22');
+      this.style.transform='scale(1.1)';
+    });
+    btn.addEventListener('mouseleave',function(){
+      if(!this.classList.contains('selected')){
+        this.style.background='#0e0e28';
+        this.style.transform='scale(1)';
+      }
+    });
+    btn.addEventListener('click',function(){
+      // Deselect all
+      document.querySelectorAll('.lvl-select-btn').forEach(function(b){
+        b.style.background='#0e0e28';b.style.transform='scale(1)';
+        b.classList.remove('selected');
+      });
+      // Select this one
+      this.style.background='#1a2a44';
+      this.style.transform='scale(1.12)';
+      this.classList.add('selected');
+      var li=parseInt(this.getAttribute('data-li'));
+      var mainBtn=document.getElementById('ov-btn');
+      mainBtn.textContent='Comenzar desde Nivel '+(li+1);
+      mainBtn.onclick=function(){
+        level=li; score=0; kills=0;
+        LEVELS=generateAllLevels();
+        startLevel();
+      };
+    });
+  });
+}
+
+function showBooks(){
+  var prev=gameState;
+  if(gameState==='playing'){gameState='paused';document.getElementById('pause-overlay').style.display='none';}
+  var ov=document.getElementById('overlay');
+  document.getElementById('ov-title').textContent='Libros Recomendados';
+  document.getElementById('ov-desc').textContent='Referencias para profundizar en los temas del juego.';
+  document.getElementById('ov-phase-banner').style.display='none';
+  var mathDiv=document.getElementById('ov-math');
+  mathDiv.style.display='block';
+  // Only show book list (no level selector)
+  var html='<div style="width:100%;max-width:440px;">';
+  html+='<div style="background:#0a0a1e;border:1px solid #2a2a44;border-radius:8px;padding:10px 12px;">';
+  BOOKS.forEach(function(b){ html+=renderBookCard(b); });
+  html+='</div></div>';
+  mathDiv.innerHTML=html;
+  var btn=document.getElementById('ov-btn');
+  btn.textContent= prev==='playing' ? 'Continuar juego' : 'Volver al Menu';
+  btn.onclick=function(){
+    ov.style.display='none';
+    if(prev==='playing'){gameState='playing';}
+    else{showIntro();}
+  };
+  ov.style.display='flex';
+}
+// DRAW
+function drawGrid(){
+  for(var x=0;x<=COLS;x++){ctx.beginPath();ctx.moveTo(x*CELL,0);ctx.lineTo(x*CELL,H);ctx.stroke();}
+  for(var y=0;y<=ROWS;y++){ctx.beginPath();ctx.moveTo(0,y*CELL);ctx.lineTo(W,y*CELL);ctx.stroke();}
+  ctx.strokeStyle='#2a2a55';ctx.lineWidth=1.2;
+  ctx.beginPath();ctx.moveTo(ORIG_X,0);ctx.lineTo(ORIG_X,H);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(0,ORIG_Y);ctx.lineTo(W,ORIG_Y);ctx.stroke();
+  ctx.fillStyle='#3a4488';ctx.font='9px Courier New';ctx.textAlign='center';
+  for(var i=-MID_X;i<=MID_X;i+=5){if(i===0)continue;var px=ORIG_X+i*CELL;if(px>10&&px<W-10)ctx.fillText(i,px,ORIG_Y+12);}
+  ctx.textAlign='right';
+  for(var j=-MID_Y;j<=MID_Y;j+=4){if(j===0)continue;var py2=ORIG_Y+j*CELL;if(py2>10&&py2<H-10)ctx.fillText(-j,ORIG_X-3,py2+3);}
+  ctx.fillStyle='#6677bb';ctx.textAlign='center';ctx.font='bold 11px Courier New';
+  ctx.fillText('x',W-7,ORIG_Y+13);ctx.textAlign='left';ctx.fillText('y',ORIG_X+4,11);
+  ctx.fillStyle='#445577';ctx.fillText('0',ORIG_X+3,ORIG_Y+12);
+}
+
+function drawSnake(segs,color,isPlayer){
+  if(!segs||!segs.length)return;
+  segs.forEach(function(s,i){
+    var t2=i/segs.length;
+    if(isPlayer){
+      var alpha=Math.round((0.95-t2*0.5)*255).toString(16).padStart(2,'0');
+      ctx.fillStyle=color+alpha;
+    } else {
+      ctx.fillStyle=i===0?color:color+Math.round((0.85-t2*0.55)*255).toString(16).padStart(2,'0');
+    }
+    ctx.fillRect(s.x*CELL+1,s.y*CELL+1,CELL-2,CELL-2);
+    if(i===0){
+      ctx.fillStyle='#ffffff';
+      if(isPlayer){
+        var ex=player.dir.x>0?10:(player.dir.x<0?2:3);
+        var ey=player.dir.y>0?10:(player.dir.y<0?2:3);
+        if(player.dir.x!==0){ctx.fillRect(s.x*CELL+ex,s.y*CELL+3,3,3);ctx.fillRect(s.x*CELL+ex,s.y*CELL+10,3,3);}
+        else{ctx.fillRect(s.x*CELL+3,s.y*CELL+ey,3,3);ctx.fillRect(s.x*CELL+10,s.y*CELL+ey,3,3);}
+      } else {
+        ctx.fillRect(s.x*CELL+3,s.y*CELL+3,3,3);ctx.fillRect(s.x*CELL+10,s.y*CELL+3,3,3);
+      }
+    }
+  });
+}
+
+function drawFuncPath(e){
+  if(!e.path||e.path.length<2)return;
+  ctx.strokeStyle=e.color+'33';ctx.lineWidth=1;ctx.setLineDash([3,6]);
+  ctx.beginPath();ctx.moveTo(e.path[0].x*CELL+CELL/2,e.path[0].y*CELL+CELL/2);
+  for(var i=1;i<e.path.length;i++)ctx.lineTo(e.path[i].x*CELL+CELL/2,e.path[i].y*CELL+CELL/2);
+  ctx.stroke();ctx.setLineDash([]);
+}
+
+function drawBullet(b){
+  ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
+  ctx.fillStyle=b.color;ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,0.25)';ctx.lineWidth=1;ctx.stroke();
+}
+
+function draw(){
+  ctx.fillStyle='#060612';ctx.fillRect(0,0,W,H);
+  drawGrid();
+  if(gameState==='playing'||gameState==='info'){
+    enemies&&enemies.forEach(function(e){
+      if(!e.dead){
+        drawFuncPath(e);
+        if(e.isBoss) drawEDOBoss(e);
+        else drawSnake(e.segments,e.color,false);
+        var h=e.segments[0];
+        ctx.fillStyle=e.color;ctx.font='bold 8px Courier New';ctx.textAlign='center';
+        ctx.fillText(e.name,h.x*CELL+CELL/2,h.y*CELL-3);
+      }
+    });
+    player&&drawSnake(player.segments,player.color,true);
+    playerBullets&&playerBullets.forEach(drawBullet);
+    enemyBullets&&enemyBullets.forEach(drawBullet);
+  }
+  drawDeathAnims();
+}
+
+// INPUT
+document.addEventListener('keydown',function(ev){
+  if(gameState!=='playing')return;
+  var k=ev.key;
+  if(k==='ArrowLeft'||k==='a'||k==='A'){if(player.dir.x!==1)player.nextDir={x:-1,y:0};}
+  else if(k==='ArrowRight'||k==='d'||k==='D'){if(player.dir.x!==-1)player.nextDir={x:1,y:0};}
+  else if(k==='ArrowUp'||k==='w'||k==='W'){if(player.dir.y!==1)player.nextDir={x:0,y:-1};}
+  else if(k==='ArrowDown'||k==='s'||k==='S'){if(player.dir.y!==-1)player.nextDir={x:0,y:1};}
+  else if(k===' '){ev.preventDefault();shootPlayer();}
+  else if(k==='p'||k==='P')togglePause();
+});
+
+// LOOP
+function loop(ts){
+  if(!lastTime)lastTime=ts;
+  var dt=Math.min(ts-lastTime,80);lastTime=ts;
+  update(dt);draw();requestAnimationFrame(loop);
+}
+
+showIntro();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
